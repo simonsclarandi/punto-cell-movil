@@ -13,7 +13,7 @@ Proyecto desarrollado de manera incremental mediante metodología ABP, adaptando
 **Listado de Features previstas y estado actual:**
 
 - [x] **1. Consultar inventario:** Visualizar el listado general de equipos, estado de stock y valores de mercado (UI estática - Unidad I).
-- [ ] **2. Consultar registro de ventas:** Visualizar el listado histórico de ventas realizadas, montos y tickets asociados.
-- [ ] **3. Consultar registro de compras:** Acceder al detalle de ingresos de mercadería y gestión con proveedores.
-- [ ] **4. Consultar estado de reparaciones:** Monitorear el listado de equipos ingresados al servicio técnico y su estado actual.
-- [ ] **5. Consultar bitácora:** Auditar el registro de movimientos y acciones realizadas por los usuarios dentro del sistema.
+- [x] **2. Consultar registro de ventas:** Visualizar el listado histórico de ventas realizadas, montos y tickets asociados.
+- [x] **3. Consultar registro de compras:** Acceder al detalle de ingresos de mercadería y gestión con proveedores.
+- [x] **4. Consultar estado de reparaciones:** Monitorear el listado de equipos ingresados al servicio técnico y su estado actual.
+- [x] **5. Consultar bitácora:** Auditar el registro de movimientos y acciones realizadas por los usuarios dentro del sistema.
