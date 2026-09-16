@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 
 const SaleDetail = ({ item, onBack }) => {
   if (!item) return null;
@@ -30,7 +31,7 @@ const SaleDetail = ({ item, onBack }) => {
           </View>
           <View style={styles.column}>
             <Text style={styles.label}>Estado</Text>
-            <Text style={[styles.value, { color: item.estadoPago ? '#10b981' : '#f59e0b' }]}>
+            <Text style={[styles.value, { color: item.estadoPago ? COLORS.success : COLORS.warning }]}>
               {item.estadoPago ? 'Pagada' : 'Pendiente'}
             </Text>
           </View>
@@ -61,25 +62,25 @@ const SaleDetail = ({ item, onBack }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc', padding: 16 },
+  container: { flex: 1, backgroundColor: COLORS.surfaceMuted, padding: 16 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
-  backButton: { backgroundColor: '#e2e8f0', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
-  backButtonText: { fontWeight: 'bold', color: '#0f172a' },
-  card: { backgroundColor: 'white', padding: 16, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0' },
-  sectionTitle: { fontSize: 12, fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 12 },
-  label: { fontSize: 10, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginTop: 8 },
-  value: { fontSize: 14, fontWeight: 'bold', color: '#334155' },
-  valueMono: { fontSize: 14, fontFamily: 'monospace', color: '#2563eb', fontWeight: 'bold' },
+  headerTitle: { fontSize: TYPOGRAPHY.sizes.h4, fontWeight: 'bold', color: COLORS.textPrimary },
+  backButton: { backgroundColor: COLORS.divider, paddingHorizontal: 16, paddingVertical: 8, borderRadius: SPACING.smallRadius },
+  backButtonText: { fontWeight: 'bold', color: COLORS.textPrimary },
+  card: { backgroundColor: COLORS.paper, padding: 16, borderRadius: SPACING.borderRadius, marginBottom: 16, borderWidth: 1, borderColor: COLORS.divider, ...SHADOWS.lift },
+  sectionTitle: { fontSize: 12, fontWeight: 'bold', color: COLORS.textSecondary, textTransform: 'uppercase', marginBottom: 12 },
+  label: { fontSize: 10, fontWeight: 'bold', color: COLORS.textDisabled, textTransform: 'uppercase', marginTop: 8 },
+  value: { fontSize: 14, fontWeight: 'bold', color: COLORS.textPrimary },
+  valueMono: { fontSize: 14, fontFamily: TYPOGRAPHY.mono, color: COLORS.primary, fontWeight: 'bold' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   column: { width: '45%' },
-  productRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  productName: { fontSize: 14, fontWeight: 'bold', color: '#0f172a' },
-  productSpec: { fontSize: 12, color: '#64748b' },
-  productPrice: { fontSize: 14, fontWeight: 'bold', color: '#0f172a' },
+  productRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.dividerSoft },
+  productName: { fontSize: 14, fontWeight: 'bold', color: COLORS.textPrimary },
+  productSpec: { fontSize: 12, color: COLORS.textSecondary },
+  productPrice: { fontSize: 14, fontWeight: 'bold', color: COLORS.textPrimary },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  totalLabel: { fontSize: 16, fontWeight: 'bold', color: '#334155' },
-  totalValue: { fontSize: 24, fontWeight: '900', color: '#2563eb' }
+  totalLabel: { fontSize: TYPOGRAPHY.sizes.h6, fontWeight: 'bold', color: COLORS.textPrimary },
+  totalValue: { fontSize: TYPOGRAPHY.sizes.h4, fontWeight: '900', color: COLORS.primary }
 });
 
 export default SaleDetail;

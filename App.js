@@ -3,6 +3,8 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-nati
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from './constants/theme';
 import { useNavigationStore } from './store/useNavigationStore';
 
@@ -12,12 +14,16 @@ import Header from './components/layout/Header';
 
 // Componentes de UI (Tarjetas)
 import InventoryCard from './components/inventario/InventoryCard';
-import InventoryDetail from './components/inventario/InventoryDetail'; // Asegurate de tener esta importación
+import InventoryDetail from './components/inventario/InventoryDetail';
 import PurchaseCard from './components/compras/PurchaseCard';
+import SaleList from './components/ventas/SaleList';
 import SaleCard from './components/ventas/SaleCard';
 import SaleDetail from './components/ventas/SaleDetail';
 import RepairCard from './components/reparaciones/RepairCard';
 import LogCard from './components/bitacora/LogCard';
+import LogList from './components/bitacora/LogList';
+
+const queryClient = new QueryClient();
 
 export default function App() {
   // 1. Extraemos el estado y las acciones directamente desde Zustand
@@ -94,37 +100,6 @@ export default function App() {
   };
 
   // --------------------------------------------------------
-  // MÓDULO 4: VENTAS
-  // --------------------------------------------------------
-  const renderVentas = () => {
-    const facturado = mockVentas.reduce((acc, v) => acc + v.total, 0);
-    const pendientes = mockVentas.filter(v => !v.estadoPago).length;
-
-    return (
-      <ScrollView style={styles.container}>
-        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-          <View style={{ flex: 1, backgroundColor: 'white', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' }}>
-            <Text style={{ fontSize: 10, color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Facturado</Text>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#0f172a' }}>U$S {facturado}</Text>
-          </View>
-          <View style={{ flex: 1, backgroundColor: 'white', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#f59e0b' }}>
-            <Text style={{ fontSize: 10, color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Por Cobrar</Text>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#f59e0b' }}>{pendientes} tickets</Text>
-          </View>
-        </View>
-
-        <View style={styles.listContainer}>
-          {mockVentas.map((venta) => (
-            <TouchableOpacity key={venta.id} onPress={() => { setItemSeleccionado(venta); setVistaActual('detalle_venta'); }} activeOpacity={0.7}>
-              <SaleCard id={venta.id} fecha={venta.fecha} cliente={venta.cliente} vendedor={venta.vendedor} total={venta.total} estadoPago={venta.estadoPago} />
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-    );
-  };
-
-  // --------------------------------------------------------
   // MÓDULO 5: BITÁCORA
   // --------------------------------------------------------
   const renderBitacora = () => {
@@ -167,9 +142,9 @@ export default function App() {
     switch (moduloActual) {
       case 'inventario': return renderInventario();
       case 'compras': return renderCompras();
-      case 'ventas': return renderVentas();
+      case 'ventas': return <SaleList />;
       case 'reparaciones': return renderReparaciones();
-      case 'bitacora': return renderBitacora();
+      case 'bitacora': return <LogList/>;
       default: return renderInventario();
     }
   };
@@ -183,22 +158,24 @@ export default function App() {
   };
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar style="dark" />
-        
-        {/* 2. Cabecera dinámica que solo recibe el título. El menú lo maneja Zustand internamente. */}
-        <Header titulo={titulos[moduloActual]} />
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.safeArea}>
+          <StatusBar style="dark" />
+          
+          {/* 2. Cabecera dinámica que solo recibe el título. El menú lo maneja Zustand internamente. */}
+          <Header titulo={titulos[moduloActual]} />
 
-        {/* Contenido Principal */}
-        <View style={styles.content}>
-          {getContenido()}
-        </View>
+          {/* Contenido Principal */}
+          <View style={styles.content}>
+            {getContenido()}
+          </View>
 
-        {/* 3. Menú Lateral Superpuesto. Ya no requiere pasarle props. */}
-        {menuAbierto && <Sidebar />}
-      </SafeAreaView>
-    </SafeAreaProvider>
+          {/* 3. Menú Lateral Superpuesto. Ya no requiere pasarle props. */}
+          {menuAbierto && <Sidebar />}
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 }
 

@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 
 const SaleCard = ({ id, fecha, cliente, vendedor, total, estadoPago }) => {
-  const isSaldada = estadoPago;
-
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -11,9 +10,9 @@ const SaleCard = ({ id, fecha, cliente, vendedor, total, estadoPago }) => {
           <Text style={styles.idText}>#{id}</Text>
           <Text style={styles.dateText}>{fecha}</Text>
         </View>
-        <View style={[styles.statusPill, { backgroundColor: isSaldada ? '#dcfce7' : '#fef2f2' }]}>
-          <Text style={[styles.statusText, { color: isSaldada ? '#166534' : '#991b1b' }]}>
-            {isSaldada ? 'Pagada' : 'Pendiente'}
+        <View style={[styles.statusPill, { backgroundColor: estadoPago ? COLORS.success + '20' : COLORS.error + '20' }]}>
+          <Text style={[styles.statusText, { color: estadoPago ? COLORS.success : COLORS.error }]}>
+            {estadoPago ? 'Pagada' : 'Pendiente'}
           </Text>
         </View>
       </View>
@@ -32,19 +31,19 @@ const SaleCard = ({ id, fecha, cliente, vendedor, total, estadoPago }) => {
 };
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#ffffff', borderRadius: 8, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  card: { backgroundColor: COLORS.paper, borderRadius: SPACING.smallRadius, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.divider, ...SHADOWS.lift },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   idContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  idText: { fontWeight: 'bold', fontSize: 16, color: '#0f172a', fontFamily: 'monospace' },
-  dateText: { fontSize: 12, color: '#64748b', fontFamily: 'monospace' },
+  idText: { fontWeight: 'bold', fontSize: TYPOGRAPHY.sizes.h6, color: COLORS.textPrimary, fontFamily: TYPOGRAPHY.mono },
+  dateText: { fontSize: 12, color: COLORS.textSecondary, fontFamily: TYPOGRAPHY.mono },
   statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' },
-  clientName: { fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginBottom: 2 },
-  sellerName: { fontSize: 12, color: '#64748b', marginBottom: 16 },
-  amountsRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 12 },
+  clientName: { fontSize: TYPOGRAPHY.sizes.h5, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: 2 },
+  sellerName: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 16 },
+  amountsRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: COLORS.dividerSoft, paddingTop: 12 },
   amountBox: { flex: 1 },
-  amountLabel: { fontSize: 10, color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: 4 },
-  amountValue: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
+  amountLabel: { fontSize: 10, color: COLORS.textSecondary, textTransform: 'uppercase', fontWeight: 'bold', marginBottom: 4 },
+  amountValue: { fontSize: TYPOGRAPHY.sizes.h6, fontWeight: '900', color: COLORS.textPrimary },
 });
 
 export default SaleCard;
