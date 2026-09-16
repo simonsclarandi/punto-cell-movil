@@ -1,10 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, SHADOWS } from '../../constants/theme';
+import { useNavigationStore } from '../../store/useNavigationStore';
 
 const { width } = Dimensions.get('window');
 
-const Sidebar = ({ moduloActual, onNavigate, onClose }) => {
+const Sidebar = () => {
+  // Obtenemos solo lo que este componente necesita leer o ejecutar
+  const moduloActual = useNavigationStore(state => state.moduloActual);
+  const cambiarModulo = useNavigationStore(state => state.cambiarModulo);
+  const setMenuAbierto = useNavigationStore(state => state.setMenuAbierto);
+
   const menuItems = [
     { id: 'inventario', label: '📦 Inventario' },
     { id: 'compras', label: '🛒 Compras' },
@@ -15,10 +21,8 @@ const Sidebar = ({ moduloActual, onNavigate, onClose }) => {
 
   return (
     <View style={styles.overlay}>
-      {/* Fondo oscuro translúcido que cierra el menú al tocarlo */}
-      <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
+      <TouchableOpacity style={styles.backdrop} onPress={() => setMenuAbierto(false)} activeOpacity={1} />
       
-      {/* Contenedor del Menú */}
       <View style={styles.menu}>
         <View style={styles.header}>
           <Text style={styles.title}>Punto Cell</Text>
@@ -30,10 +34,7 @@ const Sidebar = ({ moduloActual, onNavigate, onClose }) => {
             <TouchableOpacity
               key={item.id}
               style={[styles.menuItem, moduloActual === item.id && styles.menuItemActive]}
-              onPress={() => {
-                onNavigate(item.id);
-                onClose(); // Cierra el menú al seleccionar una opción
-              }}
+              onPress={() => cambiarModulo(item.id)}
             >
               <Text style={[styles.menuText, moduloActual === item.id && styles.menuTextActive]}>
                 {item.label}

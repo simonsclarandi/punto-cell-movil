@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from './constants/theme';
+import { useNavigationStore } from './store/useNavigationStore';
 
 // Componentes Estructurales
 import Sidebar from './components/layout/Sidebar';
@@ -11,23 +12,26 @@ import Header from './components/layout/Header';
 
 // Componentes de UI (Tarjetas)
 import InventoryCard from './components/inventario/InventoryCard';
+import InventoryDetail from './components/inventario/InventoryDetail'; // Asegurate de tener esta importación
 import PurchaseCard from './components/compras/PurchaseCard';
-
 import SaleCard from './components/ventas/SaleCard';
 import SaleDetail from './components/ventas/SaleDetail';
-
 import RepairCard from './components/reparaciones/RepairCard';
-
 import LogCard from './components/bitacora/LogCard';
 
 export default function App() {
-  const [moduloActual, setModuloActual] = useState('inventario');
-  const [menuAbierto, setMenuAbierto] = useState(false);
-  const [vistaActual, setVistaActual] = useState('lista');
-  const [itemSeleccionado, setItemSeleccionado] = useState(null);
+  // 1. Extraemos el estado y las acciones directamente desde Zustand
+  const { 
+    moduloActual, 
+    menuAbierto, 
+    vistaActual, 
+    itemSeleccionado, 
+    setVistaActual, 
+    setItemSeleccionado 
+  } = useNavigationStore();
 
   // --------------------------------------------------------
-  // MÓDULO 1: INVENTARIO (Pronto a moverse a /screens)
+  // MÓDULO 1: INVENTARIO 
   // --------------------------------------------------------
   const renderInventario = () => (
     <ScrollView style={styles.container}>
@@ -41,7 +45,7 @@ export default function App() {
   );
 
   // --------------------------------------------------------
-  // MÓDULO 2: COMPRAS (Pronto a moverse a /screens)
+  // MÓDULO 2: COMPRAS
   // --------------------------------------------------------
   const renderCompras = () => (
     <ScrollView style={styles.container}>
@@ -57,15 +61,8 @@ export default function App() {
   );
 
   // --------------------------------------------------------
-  // MÓDULOS EN CONSTRUCCIÓN
+  // MÓDULO 3: REPARACIONES
   // --------------------------------------------------------
-  const renderConstruccion = (nombre) => (
-    <View style={styles.centerContainer}>
-      <Text style={styles.construccionText}>Módulo de {nombre} en desarrollo</Text>
-      <Text style={styles.construccionSub}>Se integrará en las próximas unidades.</Text>
-    </View>
-  );
-
   const renderReparaciones = () => {
     const activas = mockReparaciones.length;
     const terminados = mockReparaciones.filter(r => r.estado === 'terminado').length;
@@ -96,6 +93,9 @@ export default function App() {
     );
   };
 
+  // --------------------------------------------------------
+  // MÓDULO 4: VENTAS
+  // --------------------------------------------------------
   const renderVentas = () => {
     const facturado = mockVentas.reduce((acc, v) => acc + v.total, 0);
     const pendientes = mockVentas.filter(v => !v.estadoPago).length;
@@ -124,6 +124,9 @@ export default function App() {
     );
   };
 
+  // --------------------------------------------------------
+  // MÓDULO 5: BITÁCORA
+  // --------------------------------------------------------
   const renderBitacora = () => {
     const totalRegistros = mockBitacora.length;
     const accesosFallidos = mockBitacora.filter(l => l.accion.toLowerCase().includes('fallido')).length;
@@ -154,6 +157,9 @@ export default function App() {
     );
   };
 
+  // --------------------------------------------------------
+  // ORQUESTADOR CENTRAL
+  // --------------------------------------------------------
   const getContenido = () => {
     if (vistaActual === 'detalle') return <InventoryDetail item={itemSeleccionado} onBack={() => setVistaActual('lista')} />;
     if (vistaActual === 'detalle_venta') return <SaleDetail item={itemSeleccionado} onBack={() => setVistaActual('lista')} />;
@@ -181,25 +187,16 @@ export default function App() {
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="dark" />
         
-        {/* Cabecera Dinámica */}
-        <Header 
-          titulo={titulos[moduloActual]} 
-          onMenuPress={() => setMenuAbierto(true)} 
-        />
+        {/* 2. Cabecera dinámica que solo recibe el título. El menú lo maneja Zustand internamente. */}
+        <Header titulo={titulos[moduloActual]} />
 
         {/* Contenido Principal */}
         <View style={styles.content}>
           {getContenido()}
         </View>
 
-        {/* Menú Lateral Superpuesto */}
-        {menuAbierto && (
-          <Sidebar 
-            moduloActual={moduloActual} 
-            onNavigate={setModuloActual} 
-            onClose={() => setMenuAbierto(false)} 
-          />
-        )}
+        {/* 3. Menú Lateral Superpuesto. Ya no requiere pasarle props. */}
+        {menuAbierto && <Sidebar />}
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -215,7 +212,7 @@ const styles = StyleSheet.create({
   construccionSub: { fontSize: TYPOGRAPHY.sizes.body, color: COLORS.textDisabled, textAlign: 'center' }
 });
 
-// DATOS ESTÁTICOS (Temporalmente aquí, luego los sacaremos)
+// DATOS ESTÁTICOS 
 const mockInventario = [
   { id: 1, producto: 'iPhone 13 Pro', modelo: '256GB', color: 'Gold', imei: '358940183901235', stock: 5, precioMenor: 850, imagen: 'https://images.fravega.com/f500/5d1b62e26c82f4e43a138564c40c7aee.jpg' },
   { id: 2, producto: 'Samsung Galaxy S23 Ultra', modelo: '128GB', color: 'Phantom Black', imei: '351294857392018', stock: 0, precioMenor: 700, imagen: 'https://http2.mlstatic.com/D_NQ_NP_620906-MLA96419961344_102025-O.webp' },

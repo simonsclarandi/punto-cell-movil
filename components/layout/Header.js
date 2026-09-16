@@ -1,18 +1,19 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; 
-import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY } from '../../constants/theme';
+import { useNavigationStore } from '../../store/useNavigationStore';
 
-const Header = ({ titulo, onMenuPress }) => {
+const Header = ({ titulo }) => {
+  const setMenuAbierto = useNavigationStore(state => state.setMenuAbierto);
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={onMenuPress} style={styles.iconButton}>
-        <Ionicons name="menu" size={28} color="#0f172a" />
+      <TouchableOpacity onPress={() => setMenuAbierto(true)} style={styles.iconButton}>
+        <Ionicons name="menu" size={28} color={COLORS.textPrimary} />
       </TouchableOpacity>
       
       <Text style={styles.title}>{titulo}</Text>
-      
-      {/* Espaciador vacío para que el título quede perfectamente centrado */}
       <View style={{ width: 28 }} />
     </View>
   );
