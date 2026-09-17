@@ -9,7 +9,7 @@ import { COLORS } from './constants/theme';
 import { useNavigationStore } from './store/useNavigationStore';
 
 // Componentes Estructurales
-import Sidebar from './components/layout/Sidebar';
+import BottomNav from './components/layout/BottomNav';
 import Header from './components/layout/Header';
 
 // Componentes de UI
@@ -74,8 +74,7 @@ export default function App() {
             {getContenido()}
           </View>
 
-          {/* Menú Lateral */}
-          {menuAbierto && <Sidebar />}
+          <BottomNav />
         </SafeAreaView>
       </SafeAreaProvider>
     </QueryClientProvider>

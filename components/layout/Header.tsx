@@ -1,32 +1,34 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; 
+import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, TYPOGRAPHY } from '../../constants/theme';
-import { useNavigationStore } from '../../store/useNavigationStore';
 
 interface HeaderProps {
   titulo: string;
 }
 
 const Header = ({ titulo }: HeaderProps) => {
-  const setMenuAbierto = useNavigationStore(state => state.setMenuAbierto);
-
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => setMenuAbierto(true)} style={styles.iconButton}>
-        <Ionicons name="menu" size={28} color={COLORS.textPrimary} />
-      </TouchableOpacity>
-      
       <Text style={styles.title}>{titulo}</Text>
-      <View style={{ width: 28 }} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.paper, paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.divider },
-  iconButton: { padding: 4 },
-  title: { fontSize: TYPOGRAPHY.sizes.h5, fontWeight: 'bold', color: COLORS.textPrimary },
+  container: { 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: COLORS.paper, 
+    paddingHorizontal: 16, 
+    paddingVertical: 16, 
+    borderBottomWidth: 1, 
+    borderBottomColor: COLORS.divider 
+  },
+  title: { 
+    fontSize: TYPOGRAPHY.sizes.h5, 
+    fontWeight: 'bold', 
+    color: COLORS.textPrimary 
+  },
 });
 
 export default Header;
