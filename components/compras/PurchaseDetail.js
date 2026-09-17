@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 import { useNavigationStore } from '../../store/useNavigationStore';
 
-const InventoryDetail = ({ item }) => {
+const PurchaseDetail = ({ item }) => {
   const setVistaActual = useNavigationStore(state => state.setVistaActual);
 
   if (!item) return null;
@@ -11,41 +11,41 @@ const InventoryDetail = ({ item }) => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Ficha Técnica #{item.id}</Text>
-        {/* Eliminamos el prop onBack, ahora llama directo a Zustand */}
+        <Text style={styles.headerTitle}>Compra #{item.id}</Text>
         <TouchableOpacity onPress={() => setVistaActual('lista')} style={styles.backButton}>
           <Text style={styles.backButtonText}>Volver</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Dispositivo / Hardware</Text>
-        <Text style={styles.label}>Nombre del Equipo</Text>
-        <Text style={styles.valueLarge}>{item.producto}</Text>
-        <Text style={styles.subValue}>{item.modelo}</Text>
-
-        <View style={styles.row}>
+        <Text style={styles.sectionTitle}>Datos del Proveedor</Text>
+        <View style={styles.grid}>
           <View style={styles.column}>
-            <Text style={styles.label}>IMEI</Text>
-            <Text style={styles.valueMono}>{item.imei || '---'}</Text>
+            <Text style={styles.label}>Proveedor</Text>
+            <Text style={styles.value}>{item.proveedor}</Text>
           </View>
           <View style={styles.column}>
-            <Text style={styles.label}>Color</Text>
-            <Text style={styles.value}>🎨 {item.color || 'N/A'}</Text>
+            <Text style={styles.label}>Fecha Ingreso</Text>
+            <Text style={styles.valueMono}>{item.fecha}</Text>
+          </View>
+          <View style={styles.column}>
+            <Text style={styles.label}>Condición</Text>
+            <Text style={[styles.value, { color: item.estadoPago === 3 ? COLORS.success : COLORS.error }]}>
+              {item.condicion}
+            </Text>
           </View>
         </View>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Valores de Mercado (USD)</Text>
-        <View style={styles.row}>
-          <View style={styles.column}>
-            <Text style={styles.label}>Mayorista</Text>
-            <Text style={styles.value}>U$S {item.precioMenor - 100}</Text>
+        <View style={styles.totalRow}>
+          <View>
+            <Text style={styles.totalLabel}>Costo Total</Text>
+            <Text style={styles.totalValue}>U$S {item.total}</Text>
           </View>
-          <View style={styles.column}>
-            <Text style={styles.labelFinal}>Precio Público Final</Text>
-            <Text style={styles.valueFinal}>U$S {item.precioMenor}</Text>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={styles.totalLabel}>Saldo a Pagar</Text>
+            <Text style={[styles.totalValue, item.saldo > 0 && { color: COLORS.error }]}>U$S {item.saldo}</Text>
           </View>
         </View>
       </View>
@@ -54,7 +54,7 @@ const InventoryDetail = ({ item }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background, padding: 16 },
+  container: { flex: 1, backgroundColor: COLORS.surfaceMuted, padding: 16 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   headerTitle: { fontSize: TYPOGRAPHY.sizes.h4, fontWeight: 'bold', color: COLORS.textPrimary },
   backButton: { backgroundColor: COLORS.divider, paddingHorizontal: 16, paddingVertical: 8, borderRadius: SPACING.smallRadius },
@@ -62,14 +62,13 @@ const styles = StyleSheet.create({
   card: { backgroundColor: COLORS.paper, padding: 16, borderRadius: SPACING.borderRadius, marginBottom: 16, borderWidth: 1, borderColor: COLORS.divider, ...SHADOWS.lift },
   sectionTitle: { fontSize: 12, fontWeight: 'bold', color: COLORS.textSecondary, textTransform: 'uppercase', marginBottom: 12 },
   label: { fontSize: 10, fontWeight: 'bold', color: COLORS.textDisabled, textTransform: 'uppercase', marginTop: 8 },
-  valueLarge: { fontSize: TYPOGRAPHY.sizes.h3, fontWeight: '900', color: COLORS.textPrimary },
-  subValue: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 12 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  column: { flex: 1 },
-  valueMono: { fontSize: 16, fontFamily: TYPOGRAPHY.mono, color: COLORS.primary, fontWeight: 'bold' },
   value: { fontSize: 14, fontWeight: 'bold', color: COLORS.textPrimary },
-  labelFinal: { fontSize: 10, fontWeight: 'bold', color: COLORS.success, textTransform: 'uppercase', marginTop: 8 },
-  valueFinal: { fontSize: TYPOGRAPHY.sizes.h3, fontWeight: '900', color: COLORS.success }
+  valueMono: { fontSize: 14, fontFamily: TYPOGRAPHY.mono, color: COLORS.primary, fontWeight: 'bold' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  column: { width: '45%' },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  totalLabel: { fontSize: 12, fontWeight: 'bold', color: COLORS.textSecondary, textTransform: 'uppercase' },
+  totalValue: { fontSize: TYPOGRAPHY.sizes.h4, fontWeight: '900', color: COLORS.textPrimary }
 });
 
-export default InventoryDetail;
+export default PurchaseDetail;

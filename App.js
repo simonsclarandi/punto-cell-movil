@@ -13,13 +13,18 @@ import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 
 // Componentes de UI (Tarjetas)
+import InventoryList from './components/inventario/InventoryList';
 import InventoryCard from './components/inventario/InventoryCard';
 import InventoryDetail from './components/inventario/InventoryDetail';
 import PurchaseCard from './components/compras/PurchaseCard';
+import PurchaseList from './components/compras/PurchaseList';
+import PurchaseDetail from './components/compras/PurchaseDetail';
 import SaleList from './components/ventas/SaleList';
 import SaleCard from './components/ventas/SaleCard';
 import SaleDetail from './components/ventas/SaleDetail';
 import RepairCard from './components/reparaciones/RepairCard';
+import RepairList from './components/reparaciones/RepairList';
+import RepairDetail from './components/reparaciones/RepairDetail';
 import LogCard from './components/bitacora/LogCard';
 import LogList from './components/bitacora/LogList';
 
@@ -35,20 +40,6 @@ export default function App() {
     setVistaActual, 
     setItemSeleccionado 
   } = useNavigationStore();
-
-  // --------------------------------------------------------
-  // MÓDULO 1: INVENTARIO 
-  // --------------------------------------------------------
-  const renderInventario = () => (
-    <ScrollView style={styles.container}>
-      {mockInventario.map((item) => (
-        <InventoryCard 
-          key={item.id} producto={item.producto} modelo={item.modelo} 
-          stock={item.stock} precio={item.precioMenor} imagen={item.imagen} 
-        />
-      ))}
-    </ScrollView>
-  );
 
   // --------------------------------------------------------
   // MÓDULO 2: COMPRAS
@@ -138,14 +129,16 @@ export default function App() {
   const getContenido = () => {
     if (vistaActual === 'detalle') return <InventoryDetail item={itemSeleccionado} onBack={() => setVistaActual('lista')} />;
     if (vistaActual === 'detalle_venta') return <SaleDetail item={itemSeleccionado} onBack={() => setVistaActual('lista')} />;
-    
+    if (vistaActual === 'detalle_compra') return <PurchaseDetail item={itemSeleccionado} />;
+    if (vistaActual === 'detalle_reparacion') return <RepairDetail item={itemSeleccionado} />;
+
     switch (moduloActual) {
-      case 'inventario': return renderInventario();
-      case 'compras': return renderCompras();
+      case 'inventario': return <InventoryList />;
+      case 'compras': return <PurchaseList/>;
       case 'ventas': return <SaleList />;
-      case 'reparaciones': return renderReparaciones();
+      case 'reparaciones': return <RepairList />;
       case 'bitacora': return <LogList/>;
-      default: return renderInventario();
+      default: return <InventoryList />;
     }
   };
 

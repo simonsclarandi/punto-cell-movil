@@ -1,15 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 
 const RepairCard = ({ id, fecha, cliente, dispositivo, falla, estado }) => {
   const getStatusConfig = () => {
     const normalize = estado?.toLowerCase();
     switch (normalize) {
-      case 'entregado': return { bg: '#dcfce7', text: '#166534', label: 'Entregado' };
-      case 'terminado': return { bg: '#fef3c7', text: '#92400e', label: 'Terminado' };
-      case 'en reparación': return { bg: '#eff6ff', text: '#1e40af', label: 'Reparación' };
-      case 'anulado': return { bg: '#fef2f2', text: '#991b1b', label: 'Anulada' };
-      default: return { bg: '#f1f5f9', text: '#475569', label: 'Espera' }; // 'en espera'
+      case 'entregado': return { bg: COLORS.success + '20', text: COLORS.success, label: 'Entregado' };
+      case 'terminado': return { bg: COLORS.warning + '20', text: COLORS.warning, label: 'Terminado' };
+      case 'en reparación': return { bg: COLORS.info + '20', text: COLORS.info, label: 'Reparación' };
+      case 'anulado': return { bg: COLORS.error + '20', text: COLORS.error, label: 'Anulada' };
+      default: return { bg: COLORS.secondary + '20', text: COLORS.secondary, label: 'Espera' }; // 'en espera'
     }
   };
 
@@ -39,18 +40,18 @@ const RepairCard = ({ id, fecha, cliente, dispositivo, falla, estado }) => {
 };
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#ffffff', borderRadius: 8, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  card: { backgroundColor: COLORS.paper, borderRadius: SPACING.smallRadius, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.divider, ...SHADOWS.lift },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   idContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  idText: { fontWeight: 'bold', fontSize: 16, color: '#0f172a', fontFamily: 'monospace' },
-  dateText: { fontSize: 12, color: '#64748b', fontFamily: 'monospace' },
+  idText: { fontWeight: 'bold', fontSize: TYPOGRAPHY.sizes.h6, color: COLORS.textPrimary, fontFamily: TYPOGRAPHY.mono },
+  dateText: { fontSize: 12, color: COLORS.textSecondary, fontFamily: TYPOGRAPHY.mono },
   statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' },
-  deviceName: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', marginBottom: 2 },
-  clientName: { fontSize: 13, color: '#64748b', marginBottom: 12 },
-  issueBox: { backgroundColor: '#f8fafc', padding: 10, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#cbd5e1' },
-  issueLabel: { fontSize: 10, color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: 4 },
-  issueText: { fontSize: 13, color: '#334155' }
+  deviceName: { fontSize: TYPOGRAPHY.sizes.h6, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: 2 },
+  clientName: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 12 },
+  issueBox: { backgroundColor: COLORS.surfaceMuted, padding: 10, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: COLORS.dividerDark },
+  issueLabel: { fontSize: 10, color: COLORS.textSecondary, textTransform: 'uppercase', fontWeight: 'bold', marginBottom: 4 },
+  issueText: { fontSize: 13, color: COLORS.textPrimary }
 });
 
 export default RepairCard;

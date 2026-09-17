@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
+import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 
 const InventoryCard = ({ producto, modelo, stock, precio, imagen }) => {
-  // Colores Stock
+  // Colores Stock usando las constantes del tema global
   const getStockColor = () => {
-    if (stock === 0) return '#d32f2f'; // agotado 
-    if (stock <= 2) return '#ed6c02';  // crítico 
-    return '#2e7d32';                  // normal
+    if (stock === 0) return COLORS.error; // agotado 
+    if (stock <= 2) return COLORS.warning;  // crítico 
+    return COLORS.success;                  // normal
   };
 
   return (
@@ -31,22 +32,21 @@ const InventoryCard = ({ producto, modelo, stock, precio, imagen }) => {
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
+    backgroundColor: COLORS.paper,
+    borderRadius: SPACING.borderRadius,
     padding: 12,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.divider,
+    ...SHADOWS.lift,
   },
-  image: { width: 60, height: 60, borderRadius: 8, marginRight: 12 },
+  image: { width: 60, height: 60, borderRadius: SPACING.smallRadius, marginRight: 12 },
   infoContainer: { flex: 1, justifyContent: 'center' },
-  title: { fontSize: 16, fontWeight: '600', marginBottom: 2 },
-  subtitle: { fontSize: 12, color: '#666', marginBottom: 8 },
+  title: { fontSize: TYPOGRAPHY.sizes.h6, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 2 },
+  subtitle: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 8 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  stock: { fontSize: 13, fontWeight: '500' },
-  price: { fontSize: 15, fontWeight: 'bold', color: '#1976d2' }
+  stock: { fontSize: 13, fontWeight: 'bold' },
+  price: { fontSize: 15, fontWeight: '900', color: COLORS.primary }
 });
 
 export default InventoryCard;
