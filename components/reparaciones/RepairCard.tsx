@@ -2,7 +2,16 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 
-const RepairCard = ({ id, fecha, cliente, dispositivo, falla, estado }) => {
+export interface RepairItem {
+  id: number;
+  fecha: string;
+  cliente: string;
+  dispositivo: string;
+  falla: string;
+  estado: string;
+}
+
+const RepairCard = ({ id, fecha, cliente, dispositivo, falla, estado }: RepairItem) => {
   const getStatusConfig = () => {
     const normalize = estado?.toLowerCase();
     switch (normalize) {
@@ -10,7 +19,7 @@ const RepairCard = ({ id, fecha, cliente, dispositivo, falla, estado }) => {
       case 'terminado': return { bg: COLORS.warning + '20', text: COLORS.warning, label: 'Terminado' };
       case 'en reparación': return { bg: COLORS.info + '20', text: COLORS.info, label: 'Reparación' };
       case 'anulado': return { bg: COLORS.error + '20', text: COLORS.error, label: 'Anulada' };
-      default: return { bg: COLORS.secondary + '20', text: COLORS.secondary, label: 'Espera' }; // 'en espera'
+      default: return { bg: COLORS.secondary + '20', text: COLORS.secondary, label: 'Espera' }; 
     }
   };
 
@@ -49,7 +58,7 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' },
   deviceName: { fontSize: TYPOGRAPHY.sizes.h6, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: 2 },
   clientName: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 12 },
-  issueBox: { backgroundColor: COLORS.surfaceMuted, padding: 10, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: COLORS.dividerDark },
+  issueBox: { backgroundColor: COLORS.surfaceMuted, padding: 10, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: COLORS.divider },
   issueLabel: { fontSize: 10, color: COLORS.textSecondary, textTransform: 'uppercase', fontWeight: 'bold', marginBottom: 4 },
   issueText: { fontSize: 13, color: COLORS.textPrimary }
 });

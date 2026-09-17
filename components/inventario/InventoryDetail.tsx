@@ -3,7 +3,22 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 import { useNavigationStore } from '../../store/useNavigationStore';
 
-const InventoryDetail = ({ item }) => {
+export interface InventoryItem {
+  id: number;
+  producto: string;
+  modelo: string;
+  color?: string; 
+  imei?: string;
+  stock: number;
+  precioMenor: number;
+  imagen: string;
+}
+
+interface InventoryDetailProps {
+  item: InventoryItem | null;
+}
+
+const InventoryDetail = ({ item }: InventoryDetailProps) => {
   const setVistaActual = useNavigationStore(state => state.setVistaActual);
 
   if (!item) return null;
@@ -12,7 +27,6 @@ const InventoryDetail = ({ item }) => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Ficha Técnica #{item.id}</Text>
-        {/* Eliminamos el prop onBack, ahora llama directo a Zustand */}
         <TouchableOpacity onPress={() => setVistaActual('lista')} style={styles.backButton}>
           <Text style={styles.backButtonText}>Volver</Text>
         </TouchableOpacity>

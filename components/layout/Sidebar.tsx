@@ -1,17 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS, TYPOGRAPHY, SHADOWS } from '../../constants/theme';
 import { useNavigationStore } from '../../store/useNavigationStore';
 
-const { width } = Dimensions.get('window');
+interface MenuItem {
+  id: string;
+  label: string;
+}
 
 const Sidebar = () => {
-  // Obtenemos solo lo que este componente necesita leer o ejecutar
   const moduloActual = useNavigationStore(state => state.moduloActual);
   const cambiarModulo = useNavigationStore(state => state.cambiarModulo);
   const setMenuAbierto = useNavigationStore(state => state.setMenuAbierto);
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     { id: 'inventario', label: '📦 Inventario' },
     { id: 'compras', label: '🛒 Compras' },
     { id: 'ventas', label: '📈 Ventas' },

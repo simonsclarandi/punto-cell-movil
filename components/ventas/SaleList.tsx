@@ -2,11 +2,15 @@ import React from 'react';
 import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { COLORS } from '../../constants/theme';
-import SaleCard from './SaleCard';
+import SaleCard, { SaleItem } from './SaleCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
 
-// Simulamos una base de datos grande y el delay de una API real
-const mockVentasDB = Array.from({ length: 25 }).map((_, i) => ({
+interface FetchSalesResponse {
+  data: SaleItem[];
+  nextPage: number | null;
+}
+
+const mockVentasDB: SaleItem[] = Array.from({ length: 25 }).map((_, i) => ({
   id: 2000 + i,
   fecha: `2026-09-04 10:${String(i).padStart(2, '0')}`,
   cliente: `Cliente ${i + 1}`,
@@ -16,8 +20,8 @@ const mockVentasDB = Array.from({ length: 25 }).map((_, i) => ({
   detalle: [{ nombre: 'Producto Genérico', cantidad: 1, subtotal: 500 + (i * 10) }]
 }));
 
-const fetchVentasMock = async ({ pageParam = 0 }) => {
-  await new Promise(resolve => setTimeout(resolve, 1200)); // Delay simulado
+const fetchVentasMock = async ({ pageParam = 0 }: { pageParam?: number }): Promise<FetchSalesResponse> => {
+  await new Promise(resolve => setTimeout(resolve, 1200)); 
   const limit = 7;
   const start = pageParam * limit;
   const end = start + limit;
@@ -32,14 +36,13 @@ export default function SaleList() {
   const setItemSeleccionado = useNavigationStore(state => state.setItemSeleccionado);
   const setVistaActual = useNavigationStore(state => state.setVistaActual);
 
-  // Implementación de TanStack Query para Scroll Infinito
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['ventas'],
     queryFn: fetchVentasMock,
     getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 0,
   });
 
-  // Aplanamos el arreglo de páginas que devuelve TanStack
   const ventasAll = data?.pages.flatMap(page => page.data) || [];
 
   if (isLoading) {
@@ -70,10 +73,10 @@ export default function SaleList() {
             <SaleCard 
               id={item.id} fecha={item.fecha} cliente={item.cliente} 
               vendedor={item.vendedor} total={item.total} estadoPago={item.estadoPago} 
+              detalle={item.detalle}
             />
           </TouchableOpacity>
         )}
-        // Props clave para el scroll infinito
         onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
         onEndReachedThreshold={0.5} 
         ListFooterComponent={

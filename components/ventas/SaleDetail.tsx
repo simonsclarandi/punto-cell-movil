@@ -1,15 +1,23 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
+import { useNavigationStore } from '../../store/useNavigationStore';
+import { SaleItem } from './SaleCard';
 
-const SaleDetail = ({ item, onBack }) => {
+interface SaleDetailProps {
+  item: SaleItem | null;
+}
+
+const SaleDetail = ({ item }: SaleDetailProps) => {
+  const setVistaActual = useNavigationStore(state => state.setVistaActual);
+
   if (!item) return null;
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Ticket #{item.id}</Text>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <TouchableOpacity onPress={() => setVistaActual('lista')} style={styles.backButton}>
           <Text style={styles.backButtonText}>Volver</Text>
         </TouchableOpacity>
       </View>

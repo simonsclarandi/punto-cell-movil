@@ -2,7 +2,23 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 
-const SaleCard = ({ id, fecha, cliente, vendedor, total, estadoPago }) => {
+export interface SaleProduct {
+  nombre: string;
+  cantidad: number;
+  subtotal: number;
+}
+
+export interface SaleItem {
+  id: number;
+  fecha: string;
+  cliente: string;
+  vendedor: string;
+  total: number;
+  estadoPago: boolean;
+  detalle: SaleProduct[];
+}
+
+const SaleCard = ({ id, fecha, cliente, vendedor, total, estadoPago }: SaleItem) => {
   return (
     <View style={styles.card}>
       <View style={styles.header}>

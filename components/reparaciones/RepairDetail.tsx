@@ -2,8 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 import { useNavigationStore } from '../../store/useNavigationStore';
+import { RepairItem } from './RepairCard';
 
-const RepairDetail = ({ item }) => {
+interface RepairDetailProps {
+  item: RepairItem | null;
+}
+
+const RepairDetail = ({ item }: RepairDetailProps) => {
   const setVistaActual = useNavigationStore(state => state.setVistaActual);
 
   if (!item) return null;

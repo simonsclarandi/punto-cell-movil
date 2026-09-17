@@ -2,12 +2,21 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 
-const PurchaseCard = ({ id, fecha, proveedor, total, saldo, condicion, estadoPago }) => {
-  // Lógica adaptada a la paleta global
+export interface PurchaseCardProps {
+  id: number;
+  fecha: string;
+  proveedor: string;
+  total: number;
+  saldo: number;
+  condicion: string;
+  estadoPago: number;
+}
+
+const PurchaseCard = ({ id, fecha, proveedor, total, saldo, condicion, estadoPago }: PurchaseCardProps) => {
   const getStatusStyle = () => {
-    if (estadoPago === 3) return { bg: COLORS.success + '20', text: COLORS.success }; // Pagado
-    if (estadoPago === 2) return { bg: COLORS.warning + '20', text: COLORS.warning }; // Pago Parcial
-    return { bg: COLORS.error + '20', text: COLORS.error }; // Adeudado
+    if (estadoPago === 3) return { bg: COLORS.success + '20', text: COLORS.success }; 
+    if (estadoPago === 2) return { bg: COLORS.warning + '20', text: COLORS.warning }; 
+    return { bg: COLORS.error + '20', text: COLORS.error }; 
   };
 
   const statusStyle = getStatusStyle();

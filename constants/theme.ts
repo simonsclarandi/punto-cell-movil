@@ -1,7 +1,7 @@
 // constants/theme.js
 
 export const COLORS = {
-  // Paleta Principal (Light Theme por defecto)
+  // Paleta Principal 
   primary: '#12684e',
   primaryLight: '#e7f1ec',
   primaryDark: '#0d5240',
@@ -22,17 +22,14 @@ export const COLORS = {
   textDisabled: '#918c83',
   divider: '#e7e4de',
 
-  // Custom Punto Cell (Variables PC)
+  // Custom Punto Cell 
   surfaceMuted: '#fbfaf8',
   dividerSoft: '#f0eee9',
   accentSoft: '#e7f1ec',
 };
 
 export const TYPOGRAPHY = {
-  // React Native usa las fuentes del sistema por defecto. 
-  // Para iOS usa San Francisco, para Android Roboto.
   sans: 'System', 
-  // Para la clase .mono que usás en tickets e IDs
   mono: 'monospace', 
   
   sizes: {
@@ -55,14 +52,14 @@ export const SPACING = {
   smallRadius: 7,
 };
 
-// Sombras nativas (Reemplazo de pc.lift y pc.liftPop)
+// Sombras
 export const SHADOWS = {
   lift: {
     shadowColor: '#0f1729',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
-    elevation: 2, // Exclusivo para Android
+    elevation: 2, 
   },
   liftPop: {
     shadowColor: '#0f1729',

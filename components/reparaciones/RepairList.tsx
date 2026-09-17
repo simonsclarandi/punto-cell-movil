@@ -2,16 +2,16 @@ import React from 'react';
 import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { COLORS } from '../../constants/theme';
-import RepairCard from './RepairCard';
+import RepairCard, { RepairItem } from './RepairCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
 
-const mockReparaciones = [
+const mockReparaciones: RepairItem[] = [
   { id: 3001, fecha: '2026-09-02', cliente: 'Martín Gómez', dispositivo: 'Samsung Galaxy A54', falla: 'Cambio de módulo (pantalla rota)', estado: 'en reparación' },
   { id: 3002, fecha: '2026-09-03', cliente: 'Lucía Fernández', dispositivo: 'iPhone 11', falla: 'Cambio de batería', estado: 'terminado' },
   { id: 3003, fecha: '2026-09-04', cliente: 'Diego Molina', dispositivo: 'Motorola G20', falla: 'Pin de carga no funciona', estado: 'en espera' },
 ];
 
-const fetchReparaciones = async () => {
+const fetchReparaciones = async (): Promise<RepairItem[]> => {
   await new Promise(resolve => setTimeout(resolve, 800)); 
   return mockReparaciones;
 };
@@ -36,7 +36,6 @@ export default function RepairList() {
 
   if (isError) return <View style={styles.centerContainer}><Text style={{ color: COLORS.error }}>Error al cargar los datos.</Text></View>;
 
-  // Cálculo dinámico de KPIs
   const activas = data?.length || 0;
   const terminados = data?.filter(r => r.estado === 'terminado').length || 0;
 
@@ -59,7 +58,7 @@ export default function RepairList() {
         data={data}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        ListHeaderComponent={renderHeader} // Insertamos los KPIs aquí
+        ListHeaderComponent={renderHeader} 
         renderItem={({ item }) => (
           <TouchableOpacity 
             activeOpacity={0.7} 

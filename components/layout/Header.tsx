@@ -4,7 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY } from '../../constants/theme';
 import { useNavigationStore } from '../../store/useNavigationStore';
 
-const Header = ({ titulo }) => {
+interface HeaderProps {
+  titulo: string;
+}
+
+const Header = ({ titulo }: HeaderProps) => {
   const setMenuAbierto = useNavigationStore(state => state.setMenuAbierto);
 
   return (

@@ -2,8 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 import { useNavigationStore } from '../../store/useNavigationStore';
+import { PurchaseCardProps } from './PurchaseCard';
 
-const PurchaseDetail = ({ item }) => {
+interface PurchaseDetailProps {
+  item: PurchaseCardProps | null;
+}
+
+const PurchaseDetail = ({ item }: PurchaseDetailProps) => {
   const setVistaActual = useNavigationStore(state => state.setVistaActual);
 
   if (!item) return null;

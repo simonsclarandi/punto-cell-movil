@@ -2,10 +2,18 @@ import React from 'react';
 import { View, FlatList, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../constants/theme';
-import LogCard from './LogCard';
+import LogCard, { LogCardProps } from './LogCard';
 
-// Simulamos una base de datos grande de logs (Auditoría)
-const mockBitacoraDB = Array.from({ length: 40 }).map((_, i) => {
+interface LogItem extends LogCardProps {
+  id: number;
+}
+
+interface FetchLogsResponse {
+  data: LogItem[];
+  nextPage: number | null;
+}
+
+const mockBitacoraDB: LogItem[] = Array.from({ length: 40 }).map((_, i) => {
   const isError = i % 7 === 0;
   const isVenta = i % 3 === 0;
   
@@ -34,8 +42,8 @@ const mockBitacoraDB = Array.from({ length: 40 }).map((_, i) => {
   };
 });
 
-const fetchLogsMock = async ({ pageParam = 0 }) => {
-  await new Promise(resolve => setTimeout(resolve, 1000)); // Simulamos latencia
+const fetchLogsMock = async ({ pageParam = 0 }: { pageParam?: number }): Promise<FetchLogsResponse> => {
+  await new Promise(resolve => setTimeout(resolve, 1000)); 
   const limit = 8;
   const start = pageParam * limit;
   const end = start + limit;
@@ -51,11 +59,10 @@ export default function LogList() {
     queryKey: ['auditoria'],
     queryFn: fetchLogsMock,
     getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 0,
   });
 
   const logsAll = data?.pages.flatMap(page => page.data) || [];
-
-  // Cálculos para los KPIs
   const totalRegistros = logsAll.length;
   const accesosFallidos = logsAll.filter(l => l.accion.toLowerCase().includes('fallido')).length;
 
@@ -78,7 +85,6 @@ export default function LogList() {
 
   return (
     <View style={styles.container}>
-      {/* KPIs de Auditoría */}
       <View style={styles.kpiContainer}>
         <View style={[styles.kpiCard, { borderColor: COLORS.divider }]}>
           <Text style={styles.kpiLabel}>Registros Cargados</Text>

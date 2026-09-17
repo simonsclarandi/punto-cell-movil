@@ -2,12 +2,20 @@ import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 
-const InventoryCard = ({ producto, modelo, stock, precio, imagen }) => {
-  // Colores Stock usando las constantes del tema global
+// props
+interface InventoryCardProps {
+  producto: string;
+  modelo: string;
+  stock: number;
+  precio: number;
+  imagen: string;
+}
+
+const InventoryCard = ({ producto, modelo, stock, precio, imagen }: InventoryCardProps) => {
   const getStockColor = () => {
-    if (stock === 0) return COLORS.error; // agotado 
-    if (stock <= 2) return COLORS.warning;  // crítico 
-    return COLORS.success;                  // normal
+    if (stock === 0) return COLORS.error; 
+    if (stock <= 2) return COLORS.warning;  
+    return COLORS.success;                  
   };
 
   return (

@@ -2,11 +2,15 @@ import React from 'react';
 import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { COLORS } from '../../constants/theme';
-import PurchaseCard from './PurchaseCard';
+import PurchaseCard, { PurchaseCardProps } from './PurchaseCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
 
-// Datos mockeados de base de datos
-const mockComprasDB = Array.from({ length: 20 }).map((_, i) => ({
+interface FetchComprasResponse {
+  data: PurchaseCardProps[];
+  nextPage: number | null;
+}
+
+const mockComprasDB: PurchaseCardProps[] = Array.from({ length: 20 }).map((_, i) => ({
   id: 1000 + i,
   fecha: `2026-09-0${(i % 9) + 1}`,
   proveedor: i % 2 === 0 ? 'Distribuidora Apple AR' : 'Samsung Mayorista',
@@ -16,8 +20,8 @@ const mockComprasDB = Array.from({ length: 20 }).map((_, i) => ({
   condicion: i % 3 === 0 ? 'Pagado' : 'Pago Parcial'
 }));
 
-const fetchComprasMock = async ({ pageParam = 0 }) => {
-  await new Promise(resolve => setTimeout(resolve, 1000)); // Simula red
+const fetchComprasMock = async ({ pageParam = 0 }: { pageParam?: number }): Promise<FetchComprasResponse> => {
+  await new Promise(resolve => setTimeout(resolve, 1000)); 
   const limit = 8;
   const start = pageParam * limit;
   const end = start + limit;
@@ -36,6 +40,7 @@ export default function PurchaseList() {
     queryKey: ['compras'],
     queryFn: fetchComprasMock,
     getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 0, 
   });
 
   const comprasAll = data?.pages.flatMap(page => page.data) || [];
