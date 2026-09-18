@@ -7,8 +7,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { COLORS } from './constants/theme';
 import { useNavigationStore } from './store/useNavigationStore';
+import { useAuthStore } from './store/useAuthStore';
 
 // Componentes Estructurales
+import LoginScreen from './components/auth/LoginScreen';
 import BottomNav from './components/layout/BottomNav';
 import Header from './components/layout/Header';
 
@@ -32,6 +34,8 @@ export default function App() {
     vistaActual, 
     itemSeleccionado 
   } = useNavigationStore();
+
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
   // --------------------------------------------------------
   // ORQUESTADOR CENTRAL
@@ -61,19 +65,28 @@ export default function App() {
     bitacora: 'Bitácora de Sistema'
   };
 
+  if (!isAuthenticated) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.safeArea}>
+          <StatusBar style="dark" />
+          <LoginScreen />
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <SafeAreaView style={styles.safeArea}>
           <StatusBar style="dark" />
-          
           <Header titulo={titulos[moduloActual as keyof typeof titulos]} />
-
-          {/* Contenido Principal */}
+          
           <View style={styles.content}>
             {getContenido()}
           </View>
-
+          
           <BottomNav />
         </SafeAreaView>
       </SafeAreaProvider>
