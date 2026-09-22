@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../constants/theme';
 import InventoryCard from './InventoryCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
-import { InventoryItem } from './InventoryDetail'; 
+import { InventoryItem } from './InventoryDetail';
+import apiClient from '../../api/client';
 
 const mockInventario: InventoryItem[] = [
   { id: 1, producto: 'iPhone 13 Pro', modelo: '256GB', color: 'Gold', imei: '358940183901235', stock: 5, precioMenor: 850, imagen: 'https://images.fravega.com/f500/5d1b62e26c82f4e43a138564c40c7aee.jpg' },
@@ -14,8 +15,42 @@ const mockInventario: InventoryItem[] = [
 ];
 
 const fetchInventario = async (): Promise<InventoryItem[]> => {
-  await new Promise(resolve => setTimeout(resolve, 800)); 
-  return mockInventario;
+  try {
+    const [resInventario, resPrecios] = await Promise.all([
+      apiClient.get('/inventario/inventarios'),
+      apiClient.get('/precios/precios-articulos') 
+    ]);
+    
+    const inventarioBase = resInventario.data.data; 
+    const preciosBase = resPrecios.data.data;
+
+    const inventarioMapeado = inventarioBase.map((item: any) => {
+      
+      // Conectamos el precio con el inventario usando IdInventario
+      const precioItem = preciosBase.find(
+        (precio: any) => precio.IdInventario === item.Id 
+      );
+
+      return {
+        id: item.Id,
+        producto: item.articulo ? item.articulo.Nombre : 'Sin nombre',
+        modelo: item.articulo?.modelo ? item.articulo.modelo.Nombre : 'Sin modelo',
+        imei: item.IMEI || 'N/A',
+        color: item.color ? item.color.Nombre : 'N/A', 
+        stock: item.Stock || 0,
+        
+        // Leemos la propiedad ValorFinal de la base de datos
+        precioMenor: precioItem ? precioItem.ValorFinal : 0, 
+        
+        imagen: 'https://picsum.photos/', 
+      };
+    });
+
+    return inventarioMapeado;
+  } catch (error) {
+    console.error("Error al traer el inventario cruzado:", error);
+    throw error;
+  }
 };
 
 export default function InventoryList() {

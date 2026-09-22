@@ -4,32 +4,55 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { COLORS } from '../../constants/theme';
 import PurchaseCard, { PurchaseCardProps } from './PurchaseCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
+import apiClient from '../../api/client'; // <-- Asegurate de que la ruta del import sea correcta
 
 interface FetchComprasResponse {
   data: PurchaseCardProps[];
   nextPage: number | null;
 }
 
-const mockComprasDB: PurchaseCardProps[] = Array.from({ length: 20 }).map((_, i) => ({
-  id: 1000 + i,
-  fecha: `2026-09-0${(i % 9) + 1}`,
-  proveedor: i % 2 === 0 ? 'Distribuidora Apple AR' : 'Samsung Mayorista',
-  total: 3000 + (i * 150),
-  saldo: i % 3 === 0 ? 0 : 1500,
-  estadoPago: i % 3 === 0 ? 3 : 2,
-  condicion: i % 3 === 0 ? 'Pagado' : 'Pago Parcial'
-}));
+const fetchCompras = async ({ pageParam = 1 }: { pageParam?: number }): Promise<FetchComprasResponse> => {
+  try {
+    const limit = 15;
+    // Hacemos el GET a la ruta que declaraste en compras.routes.js
+    const response = await apiClient.get('/compras/compras', {
+      params: { 
+        page: pageParam, 
+        limit: limit 
+      }
+    });
+    
+    const comprasBase = response.data.data;
 
-const fetchComprasMock = async ({ pageParam = 0 }: { pageParam?: number }): Promise<FetchComprasResponse> => {
-  await new Promise(resolve => setTimeout(resolve, 1000)); 
-  const limit = 8;
-  const start = pageParam * limit;
-  const end = start + limit;
-  
-  return {
-    data: mockComprasDB.slice(start, end),
-    nextPage: end < mockComprasDB.length ? pageParam + 1 : null,
-  };
+    const comprasMapeadas = comprasBase.map((item: any) => {
+      // Determinamos el string de condición según el EstadoPago del backend
+      let condicionTexto = 'Pendiente';
+      if (item.EstadoPago === 2) condicionTexto = 'Pago Parcial';
+      if (item.EstadoPago === 3) condicionTexto = 'Pagado';
+
+      return {
+        id: item.Id,
+        // Usamos la Fecha de tu modelo, o un fallback
+        fecha: item.Fecha ? item.Fecha.split('T')[0] : '', 
+        // El Proveedor se hidrata en tu getById del service, asumimos que el getAll también lo hace.
+        // Si no viene como objeto, mostramos el ID temporalmente
+        proveedor: item.proveedor ? item.proveedor.Nombre : `Proveedor #${item.IdProveedor}`,
+        total: parseFloat(item.TotalCosto) || 0,
+        saldo: parseFloat(item.SaldoPendiente) || 0,
+        estadoPago: item.EstadoPago || 1,
+        condicion: condicionTexto
+      };
+    });
+
+    return {
+      data: comprasMapeadas,
+      // Si recibimos la cantidad máxima pedida, asumimos que hay otra página.
+      nextPage: comprasBase.length === limit ? pageParam + 1 : null,
+    };
+  } catch (error) {
+    console.error("Error al traer el historial de compras:", error);
+    throw error;
+  }
 };
 
 export default function PurchaseList() {
@@ -38,9 +61,9 @@ export default function PurchaseList() {
 
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['compras'],
-    queryFn: fetchComprasMock,
+    queryFn: fetchCompras, // <-- Usamos la nueva función
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    initialPageParam: 0, 
+    initialPageParam: 1,  // <-- Arrancamos desde la página 1
   });
 
   const comprasAll = data?.pages.flatMap(page => page.data) || [];

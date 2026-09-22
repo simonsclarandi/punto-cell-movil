@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator,
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 import { useAuthStore } from '../../store/useAuthStore';
+import apiClient from '../../api/client';
 
 const TEST_USER = { usuario: 'admin', password: 'talleres123456' };
 
@@ -19,7 +20,7 @@ export default function LoginScreen() {
     setError('');
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!form.usuario || !form.password) {
       setError('Por favor completá todos los campos.');
       return;
@@ -28,16 +29,36 @@ export default function LoginScreen() {
     setLoading(true);
     setError('');
 
-    // Simulamos la latencia de la API (1.5 segundos)
-    setTimeout(() => {
-      setLoading(false);
-      // Validación mock tal como en tu web
-      if (form.usuario === TEST_USER.usuario && form.password === TEST_USER.password) {
-        login({ username: form.usuario, rol: 'admin' }); // Guarda sesión
-      } else {
-        setError('Usuario o contraseña incorrectos.');
+    try {
+      // 1. Enviamos Identificador y Pwd tal como exige el backend
+      const res = await apiClient.post('/auth/login', {
+        Identificador: form.usuario,
+        Pwd: form.password
+      });
+
+      // 2. Extraemos el usuario y el token de res.data.data
+      const { user, token } = res.data.data;
+
+      // 3. Inyectamos el token en Axios
+      if (token) {
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
-    }, 1500);
+
+      // 4. Guardamos la sesión
+      login(user);
+
+    } catch (err: any) {
+      // Ampliamos la captura de errores para ver el mensaje real del backend
+      if (err.response) {
+        setError(err.response.data?.message || 'Credenciales incorrectas o error en el servidor.');
+        console.error("Error del backend:", err.response.data);
+      } else {
+        setError('No se pudo conectar con el servidor. Verificá tu IP y conexión Wi-Fi.');
+        console.error("Error de red:", err);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

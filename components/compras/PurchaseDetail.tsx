@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 import { useNavigationStore } from '../../store/useNavigationStore';
 import { PurchaseCardProps } from './PurchaseCard';
+import apiClient from '../../api/client';
 
 interface PurchaseDetailProps {
   item: PurchaseCardProps | null;
@@ -10,6 +12,16 @@ interface PurchaseDetailProps {
 
 const PurchaseDetail = ({ item }: PurchaseDetailProps) => {
   const setVistaActual = useNavigationStore(state => state.setVistaActual);
+
+  // 1. Buscamos el detalle de la compra en el backend usando el ID
+  const { data: compraCompleta, isLoading, isError } = useQuery({
+    queryKey: ['compraDetalle', item?.id],
+    queryFn: async () => {
+      const res = await apiClient.get(`/compras/compras/${item?.id}`);
+      return res.data.data;
+    },
+    enabled: !!item?.id, // Solo ejecuta si hay un ID válido
+  });
 
   if (!item) return null;
 
@@ -42,6 +54,42 @@ const PurchaseDetail = ({ item }: PurchaseDetailProps) => {
         </View>
       </View>
 
+      {/* 2. Nueva tarjeta para los Renglones / Detalle de la mercadería */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Artículos Ingresados</Text>
+        
+        {isLoading && (
+          <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 10 }} />
+        )}
+        
+        {isError && (
+          <Text style={{ color: COLORS.error, fontSize: 12 }}>Error al cargar los artículos.</Text>
+        )}
+
+        {compraCompleta?.detalles?.map((detalle: any, index: number) => (
+          <View key={detalle.Id || index} style={styles.itemRow}>
+            <View style={{ flex: 1 }}>
+              {/* Leemos el nombre del Articulo a través de la relación de Inventario que armaste en el backend */}
+              <Text style={styles.itemName}>
+                {detalle.inventario?.articulo?.Nombre || 'Producto sin nombre'}
+              </Text>
+              <Text style={styles.itemMeta}>
+                {detalle.Cantidad} un. x U$S {Number(detalle.PrecioCostoUnitario).toFixed(2)}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.itemSubtotal}>
+                U$S {(Number(detalle.Cantidad) * Number(detalle.PrecioCostoUnitario)).toFixed(2)}
+              </Text>
+            </View>
+          </View>
+        ))}
+
+        {!isLoading && compraCompleta?.detalles?.length === 0 && (
+          <Text style={styles.label}>No hay detalles registrados.</Text>
+        )}
+      </View>
+
       <View style={styles.card}>
         <View style={styles.totalRow}>
           <View>
@@ -71,6 +119,13 @@ const styles = StyleSheet.create({
   valueMono: { fontSize: 14, fontFamily: TYPOGRAPHY.mono, color: COLORS.primary, fontWeight: 'bold' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   column: { width: '45%' },
+  
+  // Nuevos estilos para los items
+  itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.divider },
+  itemName: { fontSize: 14, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: 4 },
+  itemMeta: { fontSize: 12, color: COLORS.textSecondary },
+  itemSubtotal: { fontSize: 14, fontWeight: 'bold', color: COLORS.textPrimary, fontFamily: TYPOGRAPHY.mono },
+  
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   totalLabel: { fontSize: 12, fontWeight: 'bold', color: COLORS.textSecondary, textTransform: 'uppercase' },
   totalValue: { fontSize: TYPOGRAPHY.sizes.h4, fontWeight: '900', color: COLORS.textPrimary }

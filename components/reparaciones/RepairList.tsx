@@ -1,29 +1,60 @@
 import React from 'react';
-import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { COLORS } from '../../constants/theme';
 import RepairCard, { RepairItem } from './RepairCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
+import apiClient from '../../api/client';
 
-const mockReparaciones: RepairItem[] = [
-  { id: 3001, fecha: '2026-09-02', cliente: 'Martín Gómez', dispositivo: 'Samsung Galaxy A54', falla: 'Cambio de módulo (pantalla rota)', estado: 'en reparación' },
-  { id: 3002, fecha: '2026-09-03', cliente: 'Lucía Fernández', dispositivo: 'iPhone 11', falla: 'Cambio de batería', estado: 'terminado' },
-  { id: 3003, fecha: '2026-09-04', cliente: 'Diego Molina', dispositivo: 'Motorola G20', falla: 'Pin de carga no funciona', estado: 'en espera' },
-];
+interface FetchRepairsResponse {
+  data: RepairItem[];
+  nextPage: number | null;
+}
 
-const fetchReparaciones = async (): Promise<RepairItem[]> => {
-  await new Promise(resolve => setTimeout(resolve, 800)); 
-  return mockReparaciones;
+const fetchReparaciones = async ({ pageParam = 1 }: { pageParam?: number }): Promise<FetchRepairsResponse> => {
+  try {
+    const limit = 15; // Un límite más alto evita el bucle de onEndReached
+    const response = await apiClient.get('/reparaciones/ordenes-reparacion', {
+      params: { page: pageParam, limit: limit } 
+    });
+    
+    const payload = response.data.data;
+    const reparacionesBase = Array.isArray(payload) ? payload : (payload.data || payload.rows || []);
+
+    const reparacionesMapeadas = reparacionesBase.map((item: any) => ({
+      id: item.Id,
+      fecha: item.FechaEmision ? item.FechaEmision.split('T')[0] : '',
+      // Ahora el backend sí nos va a mandar el cliente
+      cliente: item.dispositivo?.cliente 
+        ? `${item.dispositivo.cliente.Nombre} ${item.dispositivo.cliente.Apellido}`.trim() 
+        : 'Cliente Desconocido',
+      dispositivo: item.dispositivo?.modelo?.Nombre || 'Dispositivo en revisión',
+      falla: item.FallaReportada || 'Revisión técnica',
+      estado: item.estado ? item.estado.Nombre.toLowerCase() : 'pendiente',
+    }));
+
+    return {
+      data: reparacionesMapeadas,
+      nextPage: reparacionesBase.length >= limit ? pageParam + 1 : null,
+    };
+  } catch (error) {
+    console.error("Error al traer reparaciones:", error);
+    throw error;
+  }
 };
 
 export default function RepairList() {
   const setItemSeleccionado = useNavigationStore(state => state.setItemSeleccionado);
   const setVistaActual = useNavigationStore(state => state.setVistaActual);
 
-  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['reparaciones'],
     queryFn: fetchReparaciones,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 1,
   });
+
+  const reparacionesAll = data?.pages.flatMap(page => page.data) || [];
 
   if (isLoading) {
     return (
@@ -36,8 +67,8 @@ export default function RepairList() {
 
   if (isError) return <View style={styles.centerContainer}><Text style={{ color: COLORS.error }}>Error al cargar los datos.</Text></View>;
 
-  const activas = data?.length || 0;
-  const terminados = data?.filter(r => r.estado === 'terminado').length || 0;
+  const activas = reparacionesAll.filter(r => r.estado !== 'entregado' && r.estado !== 'cancelado').length;
+  const terminados = reparacionesAll.filter(r => r.estado === 'terminado' || r.estado === 'para entregar').length;
 
   const renderHeader = () => (
     <View style={styles.kpiContainer}>
@@ -55,7 +86,7 @@ export default function RepairList() {
   return (
     <View style={styles.container}>
       <FlatList
-        data={data}
+        data={reparacionesAll}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         ListHeaderComponent={renderHeader} 
@@ -73,8 +104,10 @@ export default function RepairList() {
             />
           </TouchableOpacity>
         )}
-        refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} colors={[COLORS.primary]} tintColor={COLORS.primary} />
+        onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
+        onEndReachedThreshold={0.5} 
+        ListFooterComponent={
+          isFetchingNextPage ? <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 16 }} /> : null
         }
       />
     </View>

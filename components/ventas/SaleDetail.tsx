@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 import { useNavigationStore } from '../../store/useNavigationStore';
 import { SaleItem } from './SaleCard';
+import apiClient from '../../api/client';
 
 interface SaleDetailProps {
   item: SaleItem | null;
@@ -10,6 +12,16 @@ interface SaleDetailProps {
 
 const SaleDetail = ({ item }: SaleDetailProps) => {
   const setVistaActual = useNavigationStore(state => state.setVistaActual);
+
+  // 1. Buscamos el detalle de la venta en el backend usando el ID
+  const { data: ventaCompleta, isLoading, isError } = useQuery({
+    queryKey: ['ventaDetalle', item?.id],
+    queryFn: async () => {
+      const res = await apiClient.get(`/ventas/${item?.id}`);
+      return res.data.data;
+    },
+    enabled: !!item?.id, // Solo ejecuta si hay un ID válido
+  });
 
   if (!item) return null;
 
@@ -48,15 +60,36 @@ const SaleDetail = ({ item }: SaleDetailProps) => {
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Productos</Text>
-        {item.detalle.map((prod, index) => (
-          <View key={index} style={styles.productRow}>
+        
+        {isLoading && (
+          <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 10 }} />
+        )}
+        
+        {isError && (
+          <Text style={{ color: COLORS.error, fontSize: 12 }}>Error al cargar los artículos.</Text>
+        )}
+
+        {/* 2. Mapeamos los detalles reales que devuelve Node.js */}
+        {ventaCompleta?.detalles?.map((prod: any, index: number) => (
+          <View key={prod.Id || index} style={styles.productRow}>
             <View>
-              <Text style={styles.productName}>{prod.nombre}</Text>
-              <Text style={styles.productSpec}>Cant: {prod.cantidad}</Text>
+              {/* Leemos el nombre del Articulo a través de la relación de Inventario armada en el backend */}
+              <Text style={styles.productName}>
+                {prod.inventario?.articulo?.Nombre || 'Producto sin nombre'}
+              </Text>
+              <Text style={styles.productSpec}>
+                Cant: {prod.Cantidad} x U$S {Number(prod.PrecioUnitario).toFixed(2)}
+              </Text>
             </View>
-            <Text style={styles.productPrice}>U$S {prod.subtotal}</Text>
+            <Text style={styles.productPrice}>
+              U$S {(Number(prod.Cantidad) * Number(prod.PrecioUnitario)).toFixed(2)}
+            </Text>
           </View>
         ))}
+
+        {!isLoading && ventaCompleta?.detalles?.length === 0 && (
+          <Text style={styles.label}>No hay detalles registrados en esta venta.</Text>
+        )}
       </View>
 
       <View style={styles.card}>
@@ -64,6 +97,16 @@ const SaleDetail = ({ item }: SaleDetailProps) => {
           <Text style={styles.totalLabel}>Total Facturado</Text>
           <Text style={styles.totalValue}>U$S {item.total}</Text>
         </View>
+        
+        {/* Opcional: Mostrar el equivalente en Pesos si ya cargó la info completa */}
+        {!isLoading && ventaCompleta?.TotalVentaARS && (
+           <View style={[styles.totalRow, { marginTop: 8 }]}>
+             <Text style={styles.totalLabel}>Equivalente ARS</Text>
+             <Text style={[styles.totalValue, { fontSize: TYPOGRAPHY.sizes.h6, color: COLORS.textSecondary }]}>
+               ${Number(ventaCompleta.TotalVentaARS).toLocaleString('es-AR')}
+             </Text>
+           </View>
+        )}
       </View>
     </ScrollView>
   );

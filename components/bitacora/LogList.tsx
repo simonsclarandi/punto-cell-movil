@@ -3,6 +3,7 @@ import { View, FlatList, ActivityIndicator, Text, StyleSheet } from 'react-nativ
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../constants/theme';
 import LogCard, { LogCardProps } from './LogCard';
+import apiClient from '../../api/client';
 
 interface LogItem extends LogCardProps {
   id: number;
@@ -13,58 +14,56 @@ interface FetchLogsResponse {
   nextPage: number | null;
 }
 
-const mockBitacoraDB: LogItem[] = Array.from({ length: 40 }).map((_, i) => {
-  const isError = i % 7 === 0;
-  const isVenta = i % 3 === 0;
-  
-  let accion = 'Inició sesión';
-  let detalle = 'Login exitoso desde dispositivo móvil.';
-  let usuario = 'Carlos';
-  
-  if (isError) {
-    accion = 'Acceso fallido';
-    detalle = 'Intento de login con contraseña incorrecta repetidas veces.';
-    usuario = 'Desconocido';
-  } else if (isVenta) {
-    accion = 'Venta registrada';
-    detalle = `Ticket #${2000 + i} generado con éxito.`;
-    usuario = 'Ana';
+const fetchLogs = async ({ pageParam = 1 }: { pageParam?: number }): Promise<FetchLogsResponse> => {
+  try {
+    const limit = 15; 
+    // Pegamos a la ruta de auditoría expuesta en auditoria.routes.js
+    const response = await apiClient.get('/auditoria/bitacoras', {
+      params: { 
+        page: pageParam, 
+        limit: limit 
+      }
+    });
+    
+    const payload = response.data.data;
+    const logsBase = Array.isArray(payload) ? payload : (payload.data || payload.rows || []);
+
+    const logsMapeados = logsBase.map((item: any) => ({
+      id: item.Id,
+      fecha: item.Fecha ? item.Fecha.replace('T', ' ').substring(0, 19) : '',
+      
+      // Si el backend no cruza las tablas, mostramos el ID como fallback. 
+      // Los logs automáticos del sistema tienen IdEmpleado e IdSucursal en null.
+      sucursal: item.sucursal ? item.sucursal.Nombre : (item.IdSucursal ? `Sucursal #${item.IdSucursal}` : 'Global'),
+      usuario: item.empleado ? `${item.empleado.Nombre} ${item.empleado.Apellido}`.trim() : (item.IdEmpleado ? `Usuario #${item.IdEmpleado}` : 'Sistema'),
+      
+      // Mapeamos a los nombres de columna exactos de bitacora.model.js
+      accion: item.Accion || 'Acción registrada',
+      detalle: item.Detalle || 'Sin detalle',
+      ip: item.IpAddress || 'Desconocida'
+    }));
+
+    return {
+      data: logsMapeados,
+      nextPage: logsBase.length === limit ? pageParam + 1 : null,
+    };
+  } catch (error) {
+    console.error("Error al traer la bitácora:", error);
+    throw error;
   }
-
-  return {
-    id: 4000 + i,
-    fecha: `2026-09-16 11:${String(i % 60).padStart(2, '0')}:${String(i).padStart(2, '0')}`,
-    sucursal: i % 2 === 0 ? 'Centro (Córdoba)' : 'Global',
-    usuario: usuario,
-    accion: accion,
-    detalle: detalle,
-    ip: `192.168.1.${10 + (i % 20)}`
-  };
-});
-
-const fetchLogsMock = async ({ pageParam = 0 }: { pageParam?: number }): Promise<FetchLogsResponse> => {
-  await new Promise(resolve => setTimeout(resolve, 1000)); 
-  const limit = 8;
-  const start = pageParam * limit;
-  const end = start + limit;
-  
-  return {
-    data: mockBitacoraDB.slice(start, end),
-    nextPage: end < mockBitacoraDB.length ? pageParam + 1 : null,
-  };
 };
 
 export default function LogList() {
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['auditoria'],
-    queryFn: fetchLogsMock,
+    queryFn: fetchLogs,
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    initialPageParam: 0,
+    initialPageParam: 1, 
   });
 
   const logsAll = data?.pages.flatMap(page => page.data) || [];
   const totalRegistros = logsAll.length;
-  const accesosFallidos = logsAll.filter(l => l.accion.toLowerCase().includes('fallido')).length;
+  const accesosFallidos = logsAll.filter(l => l.accion.toLowerCase().includes('fall')).length;
 
   if (isLoading) {
     return (

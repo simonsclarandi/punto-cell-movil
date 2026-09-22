@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 import { useNavigationStore } from '../../store/useNavigationStore';
 import { RepairItem } from './RepairCard';
+import apiClient from '../../api/client';
 
 interface RepairDetailProps {
   item: RepairItem | null;
@@ -10,6 +12,16 @@ interface RepairDetailProps {
 
 const RepairDetail = ({ item }: RepairDetailProps) => {
   const setVistaActual = useNavigationStore(state => state.setVistaActual);
+
+  // Traemos el detalle completo de la orden de reparación
+  const { data: ordenCompleta, isLoading, isError } = useQuery({
+    queryKey: ['reparacionDetalle', item?.id],
+    queryFn: async () => {
+      const res = await apiClient.get(`/reparaciones/ordenes-reparacion/${item?.id}`);
+      return res.data.data;
+    },
+    enabled: !!item?.id, 
+  });
 
   if (!item) return null;
 
@@ -48,6 +60,21 @@ const RepairDetail = ({ item }: RepairDetailProps) => {
         <Text style={[styles.valueLarge, { color: item.estado === 'terminado' ? COLORS.warning : COLORS.info, textTransform: 'capitalize' }]}>
           {item.estado}
         </Text>
+
+        {/* Indicador de carga para los datos profundos del backend */}
+        {isLoading && (
+          <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: 10, alignSelf: 'flex-start' }} />
+        )}
+
+        {/* Ejemplo: Mostramos observaciones técnicas o presupuesto si el backend ya las devolvió */}
+        {!isLoading && ordenCompleta?.Observaciones && (
+          <View style={{ marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: COLORS.dividerSoft }}>
+            <Text style={styles.label}>Observaciones Técnicas</Text>
+            <Text style={[styles.value, { fontWeight: 'normal', color: COLORS.textSecondary, marginTop: 4 }]}>
+              {ordenCompleta.Observaciones}
+            </Text>
+          </View>
+        )}
       </View>
     </ScrollView>
   );

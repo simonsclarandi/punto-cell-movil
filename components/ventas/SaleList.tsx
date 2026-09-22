@@ -4,32 +4,54 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { COLORS } from '../../constants/theme';
 import SaleCard, { SaleItem } from './SaleCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
+import apiClient from '../../api/client';
 
 interface FetchSalesResponse {
   data: SaleItem[];
   nextPage: number | null;
 }
 
-const mockVentasDB: SaleItem[] = Array.from({ length: 25 }).map((_, i) => ({
-  id: 2000 + i,
-  fecha: `2026-09-04 10:${String(i).padStart(2, '0')}`,
-  cliente: `Cliente ${i + 1}`,
-  vendedor: i % 2 === 0 ? 'Carlos' : 'Ana',
-  total: 500 + (i * 10),
-  estadoPago: i % 3 !== 0,
-  detalle: [{ nombre: 'Producto Genérico', cantidad: 1, subtotal: 500 + (i * 10) }]
-}));
+const fetchVentas = async ({ pageParam = 1 }: { pageParam?: number }): Promise<FetchSalesResponse> => {
+  try {
+    const limit = 15;
+    // Pegamos a la ruta raíz del módulo de ventas, enviando los parámetros paginados
+    const response = await apiClient.get('/ventas', {
+      params: { 
+        page: pageParam, 
+        limit: limit 
+      }
+    });
+    
+    const ventasBase = response.data.data;
 
-const fetchVentasMock = async ({ pageParam = 0 }: { pageParam?: number }): Promise<FetchSalesResponse> => {
-  await new Promise(resolve => setTimeout(resolve, 1200)); 
-  const limit = 7;
-  const start = pageParam * limit;
-  const end = start + limit;
-  
-  return {
-    data: mockVentasDB.slice(start, end),
-    nextPage: end < mockVentasDB.length ? pageParam + 1 : null,
-  };
+    const ventasMapeadas = ventasBase.map((item: any) => ({
+      id: item.Id,
+      // La base de datos devuelve la fecha en formato ISO, la dejamos limpia
+      fecha: item.Fecha ? item.Fecha.replace('T', ' ').substring(0, 16) : '',
+      
+      // Armamos el nombre del cliente y del empleado asegurándonos de que existan
+      cliente: item.cliente ? `${item.cliente.Nombre} ${item.cliente.Apellido || ''}`.trim() : 'Consumidor Final',
+      vendedor: item.empleado ? item.empleado.Nombre : 'Vendedor Desconocido',
+      
+      // La columna en tu BD se llama TotalVenta
+      total: parseFloat(item.TotalVenta) || 0,
+      
+      // EstadoPago es un BOOLEAN en tu BD (true = pagado)
+      estadoPago: item.EstadoPago === true,
+      
+      // En este listado general podemos dejar el detalle vacío, 
+      // lo pediremos completo en el SaleDetail.tsx con el getById
+      detalle: [] 
+    }));
+
+    return {
+      data: ventasMapeadas,
+      nextPage: ventasBase.length === limit ? pageParam + 1 : null,
+    };
+  } catch (error) {
+    console.error("Error al traer el historial de ventas:", error);
+    throw error;
+  }
 };
 
 export default function SaleList() {
@@ -38,9 +60,9 @@ export default function SaleList() {
 
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['ventas'],
-    queryFn: fetchVentasMock,
+    queryFn: fetchVentas,
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    initialPageParam: 0,
+    initialPageParam: 1,
   });
 
   const ventasAll = data?.pages.flatMap(page => page.data) || [];
