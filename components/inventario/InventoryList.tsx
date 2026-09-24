@@ -1,20 +1,17 @@
-import React from 'react';
-import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useState } from 'react';
+import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity, RefreshControl, TextInput, Switch } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../constants/theme';
 import InventoryCard from './InventoryCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
 import { InventoryItem } from './InventoryDetail';
 import apiClient from '../../api/client';
 
-const mockInventario: InventoryItem[] = [
-  { id: 1, producto: 'iPhone 13 Pro', modelo: '256GB', color: 'Gold', imei: '358940183901235', stock: 5, precioMenor: 850, imagen: 'https://images.fravega.com/f500/5d1b62e26c82f4e43a138564c40c7aee.jpg' },
-  { id: 2, producto: 'Samsung Galaxy S23 Ultra', modelo: '128GB', color: 'Phantom Black', imei: '351294857392018', stock: 0, precioMenor: 700, imagen: 'https://http2.mlstatic.com/D_NQ_NP_620906-MLA96419961344_102025-O.webp' },
-  { id: 3, producto: 'Motorola Edge 40', modelo: '256GB', color: 'Eclipse Black', imei: '351112223334445', stock: 2, precioMenor: 450, imagen: 'https://armoto.vtexassets.com/arquivos/ids/163628/Motorola-Edge-40-Black-1.png' },
-  { id: 4, producto: 'Xiaomi Redmi Note 12', modelo: '128GB', color: 'Ice Blue', imei: '352223334445556', stock: 15, precioMenor: 220, imagen: 'https://i0.wp.com/www.wom.co/wp-content/uploads/2023/10/Redmi-Note-12-Blue-Front.png' },
-];
+interface ExtendedInventoryItem extends InventoryItem {
+  precioMayor: number;
+}
 
-const fetchInventario = async (): Promise<InventoryItem[]> => {
+const fetchInventario = async (): Promise<ExtendedInventoryItem[]> => {
   try {
     const [resInventario, resPrecios] = await Promise.all([
       apiClient.get('/inventario/inventarios'),
@@ -24,9 +21,7 @@ const fetchInventario = async (): Promise<InventoryItem[]> => {
     const inventarioBase = resInventario.data.data; 
     const preciosBase = resPrecios.data.data;
 
-    const inventarioMapeado = inventarioBase.map((item: any) => {
-      
-      // Conectamos el precio con el inventario usando IdInventario
+    return inventarioBase.map((item: any) => {
       const precioItem = preciosBase.find(
         (precio: any) => precio.IdInventario === item.Id 
       );
@@ -38,15 +33,11 @@ const fetchInventario = async (): Promise<InventoryItem[]> => {
         imei: item.IMEI || 'N/A',
         color: item.color ? item.color.Nombre : 'N/A', 
         stock: item.Stock || 0,
-        
-        // Leemos la propiedad ValorFinal de la base de datos
         precioMenor: precioItem ? precioItem.ValorFinal : 0, 
-        
-        imagen: 'https://picsum.photos/', 
+        precioMayor: precioItem?.ValorMayorista || (precioItem ? precioItem.ValorFinal * 0.85 : 0), 
+        imagen: 'https://picsum.photos/150', 
       };
     });
-
-    return inventarioMapeado;
   } catch (error) {
     console.error("Error al traer el inventario cruzado:", error);
     throw error;
@@ -57,9 +48,25 @@ export default function InventoryList() {
   const setItemSeleccionado = useNavigationStore(state => state.setItemSeleccionado);
   const setVistaActual = useNavigationStore(state => state.setVistaActual);
 
+  const [busqueda, setBusqueda] = useState('');
+  const [mostrarAgotados, setMostrarAgotados] = useState(false);
+  const [esMayorista, setEsMayorista] = useState(false);
+
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['inventario'],
     queryFn: fetchInventario,
+  });
+
+  const inventarioFiltrado = (data || []).filter(item => {
+    const texto = busqueda.toLowerCase();
+    const coincideBusqueda = 
+      item.producto.toLowerCase().includes(texto) ||
+      item.modelo.toLowerCase().includes(texto) ||
+      (item.imei || '').toLowerCase().includes(texto);
+      
+    const coincideStock = mostrarAgotados ? item.stock === 0 : item.stock > 0;
+    
+    return coincideBusqueda && coincideStock;
   });
 
   if (isLoading) {
@@ -84,10 +91,45 @@ export default function InventoryList() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.filterContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar producto, modelo o IMEI..."
+          placeholderTextColor={COLORS.textDisabled}
+          value={busqueda}
+          onChangeText={setBusqueda}
+        />
+        <View style={styles.switchesContainer}>
+          <View style={styles.switchRow}>
+            <Switch 
+              value={mostrarAgotados} 
+              onValueChange={setMostrarAgotados}
+              trackColor={{ false: COLORS.divider, true: COLORS.primaryLight }}
+              thumbColor={mostrarAgotados ? COLORS.primary : COLORS.textDisabled}
+            />
+            <Text style={styles.switchLabel}>Solo agotados</Text>
+          </View>
+          <View style={styles.switchRow}>
+            <Switch 
+              value={esMayorista} 
+              onValueChange={setEsMayorista}
+              trackColor={{ false: COLORS.divider, true: COLORS.primaryLight }}
+              thumbColor={esMayorista ? COLORS.primary : COLORS.textDisabled}
+            />
+            <Text style={[styles.switchLabel, esMayorista && { color: COLORS.primary, fontWeight: 'bold' }]}>
+              Precio mayorista
+            </Text>
+          </View>
+        </View>
+      </View>
+
       <FlatList
-        data={data}
+        data={inventarioFiltrado}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listPadding}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No se encontraron productos con estos filtros.</Text>
+        }
         renderItem={({ item }) => (
           <TouchableOpacity 
             activeOpacity={0.7} 
@@ -100,7 +142,7 @@ export default function InventoryList() {
               producto={item.producto} 
               modelo={item.modelo} 
               stock={item.stock} 
-              precio={item.precioMenor} 
+              precio={esMayorista ? item.precioMayor : item.precioMenor} 
               imagen={item.imagen} 
             />
           </TouchableOpacity>
@@ -125,4 +167,41 @@ const styles = StyleSheet.create({
   retryButton: { marginTop: 12, padding: 10, backgroundColor: COLORS.primaryLight, borderRadius: SPACING.smallRadius },
   retryText: { color: COLORS.primary, fontWeight: 'bold' },
   listPadding: { padding: 16, paddingBottom: 40 },
+  filterContainer: {
+    backgroundColor: COLORS.paper,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.divider,
+    ...SHADOWS.lift,
+  },
+  searchInput: {
+    backgroundColor: COLORS.surfaceMuted,
+    borderRadius: SPACING.smallRadius,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: COLORS.textPrimary,
+    borderWidth: 1,
+    borderColor: COLORS.divider,
+    marginBottom: 12,
+  },
+  switchesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  switchLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: COLORS.textDisabled,
+    marginTop: 20,
+    fontSize: 14,
+  }
 });

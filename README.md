@@ -17,3 +17,8 @@ Proyecto desarrollado de manera incremental mediante metodología ABP, adaptando
 - [x] **3. Consultar registro de compras:** Acceder al detalle de ingresos de mercadería y gestión con proveedores.
 - [x] **4. Consultar estado de reparaciones:** Monitorear el listado de equipos ingresados al servicio técnico y su estado actual.
 - [x] **5. Consultar bitácora:** Auditar el registro de movimientos y acciones realizadas por los usuarios dentro del sistema.
+- [x] **6. Insertar Filtros de busqueda en Inventario.**
+- [x] **7. Insertar Filtros de busqueda en Ventas.**
+- [ ] **8. Insertar Filtros de busqueda en Compras.**
+- [ ] **9. Insertar Filtros de busqueda en Bitacora.**
+- [ ] **10. Insertar Filtros de busqueda en Reparaciones.**
