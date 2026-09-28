@@ -19,6 +19,6 @@ Proyecto desarrollado de manera incremental mediante metodología ABP, adaptando
 - [x] **5. Consultar bitácora:** Auditar el registro de movimientos y acciones realizadas por los usuarios dentro del sistema.
 - [x] **6. Insertar Filtros de busqueda en Inventario.**
 - [x] **7. Insertar Filtros de busqueda en Ventas.**
-- [ ] **8. Insertar Filtros de busqueda en Compras.**
+- [x] **8. Insertar Filtros de busqueda en Compras.**
 - [ ] **9. Insertar Filtros de busqueda en Bitacora.**
-- [ ] **10. Insertar Filtros de busqueda en Reparaciones.**
+- [x] **10. Insertar Filtros de busqueda en Reparaciones.**
