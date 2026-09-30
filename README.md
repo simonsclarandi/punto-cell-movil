@@ -12,7 +12,7 @@ Proyecto desarrollado de manera incremental mediante metodología ABP, adaptando
 
 **Listado de Features previstas y estado actual:**
 
-- [x] **1. Consultar inventario:** Visualizar el listado general de equipos, estado de stock y valores de mercado.
+- [x] **1. Consultar inventario:** Visualizar el listado general de equipos y estado de stock.
 - [x] **2. Consultar registro de ventas:** Visualizar el listado histórico de ventas realizadas, montos y tickets asociados.
 - [x] **3. Consultar registro de compras:** Acceder al detalle de ingresos de mercadería y gestión con proveedores.
 - [x] **4. Consultar estado de reparaciones:** Monitorear el listado de equipos ingresados al servicio técnico y su estado actual.
@@ -20,5 +20,6 @@ Proyecto desarrollado de manera incremental mediante metodología ABP, adaptando
 - [x] **6. Insertar Filtros de busqueda en Inventario.**
 - [x] **7. Insertar Filtros de busqueda en Ventas.**
 - [x] **8. Insertar Filtros de busqueda en Compras.**
-- [ ] **9. Insertar Filtros de busqueda en Bitacora.**
+- [x] **9. Insertar Filtros de busqueda en Bitacora.**
 - [x] **10. Insertar Filtros de busqueda en Reparaciones.**
+- [ ] **11. Implementar modulo de dashboards.** Le dara una vista al usuario de los dashboards de cada modulo
