@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity, TextInput, Switch, RefreshControl } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../constants/theme';
-import PurchaseCard, { PurchaseCardProps } from './PurchaseCard';
+import PurchaseCard, { PurchaseCardProps } from '../../components/compras/PurchaseCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
 import apiClient from '../../api/client';
+import { router } from 'expo-router';
 
 interface FetchComprasResponse {
   data: PurchaseCardProps[];
@@ -134,7 +135,7 @@ export default function PurchaseList() {
             activeOpacity={0.7} 
             onPress={() => {
               setItemSeleccionado(item);
-              setVistaActual('detalle_compra');
+              router.push(`/detalle/compra/${item.id}`);
             }}
           >
             <PurchaseCard 

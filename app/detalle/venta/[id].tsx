@@ -1,17 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
-import { useNavigationStore } from '../../store/useNavigationStore';
-import { SaleItem } from './SaleCard';
-import apiClient from '../../api/client';
+import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../../constants/theme';
+import { useNavigationStore } from '../../../store/useNavigationStore';
+// ¡Importante! Corregí la ruta a la carpeta components:
+import { SaleItem } from '../../../components/ventas/SaleCard';
+import apiClient from '../../../api/client';
+import { router } from 'expo-router';
 
-interface SaleDetailProps {
-  item: SaleItem | null;
-}
-
-const SaleDetail = ({ item }: SaleDetailProps) => {
-  const setVistaActual = useNavigationStore(state => state.setVistaActual);
+export default function SaleDetail() {
+  const item = useNavigationStore(state => state.itemSeleccionado) as SaleItem | null;
 
   // 1. Buscamos el detalle de la venta en el backend usando el ID
   const { data: ventaCompleta, isLoading, isError } = useQuery({
@@ -20,16 +18,27 @@ const SaleDetail = ({ item }: SaleDetailProps) => {
       const res = await apiClient.get(`/ventas/${item?.id}`);
       return res.data.data;
     },
-    enabled: !!item?.id, // Solo ejecuta si hay un ID válido
+    enabled: !!item?.id, 
   });
 
-  if (!item) return null;
+  console.log("DATOS DE LA VENTA:", JSON.stringify(ventaCompleta, null, 2));
+
+  if (!item) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ marginBottom: 16 }}>No se encontró el detalle de la venta.</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>Volver al listado</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Ticket #{item.id}</Text>
-        <TouchableOpacity onPress={() => setVistaActual('lista')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backButtonText}>Volver</Text>
         </TouchableOpacity>
       </View>
@@ -69,11 +78,9 @@ const SaleDetail = ({ item }: SaleDetailProps) => {
           <Text style={{ color: COLORS.error, fontSize: 12 }}>Error al cargar los artículos.</Text>
         )}
 
-        {/* 2. Mapeamos los detalles reales que devuelve Node.js */}
         {ventaCompleta?.detalles?.map((prod: any, index: number) => (
           <View key={prod.Id || index} style={styles.productRow}>
             <View>
-              {/* Leemos el nombre del Articulo a través de la relación de Inventario armada en el backend */}
               <Text style={styles.productName}>
                 {prod.inventario?.articulo?.Nombre || 'Producto sin nombre'}
               </Text>
@@ -98,7 +105,6 @@ const SaleDetail = ({ item }: SaleDetailProps) => {
           <Text style={styles.totalValue}>U$S {item.total}</Text>
         </View>
         
-        {/* Opcional: Mostrar el equivalente en Pesos si ya cargó la info completa */}
         {!isLoading && ventaCompleta?.TotalVentaARS && (
            <View style={[styles.totalRow, { marginTop: 8 }]}>
              <Text style={styles.totalLabel}>Equivalente ARS</Text>
@@ -110,7 +116,7 @@ const SaleDetail = ({ item }: SaleDetailProps) => {
       </View>
     </ScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surfaceMuted, padding: 16 },
@@ -133,5 +139,3 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: TYPOGRAPHY.sizes.h6, fontWeight: 'bold', color: COLORS.textPrimary },
   totalValue: { fontSize: TYPOGRAPHY.sizes.h4, fontWeight: '900', color: COLORS.primary }
 });
-
-export default SaleDetail;

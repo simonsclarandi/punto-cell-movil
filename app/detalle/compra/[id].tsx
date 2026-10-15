@@ -1,17 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
-import { useNavigationStore } from '../../store/useNavigationStore';
-import { PurchaseCardProps } from './PurchaseCard';
-import apiClient from '../../api/client';
+import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../../constants/theme';
+import { useNavigationStore } from '../../../store/useNavigationStore';
+// ¡Importante! Corregí la ruta a la carpeta components:
+import { PurchaseCardProps } from '../../../components/compras/PurchaseCard';
+import apiClient from '../../../api/client';
+import { router } from 'expo-router';
 
-interface PurchaseDetailProps {
-  item: PurchaseCardProps | null;
-}
-
-const PurchaseDetail = ({ item }: PurchaseDetailProps) => {
-  const setVistaActual = useNavigationStore(state => state.setVistaActual);
+export default function PurchaseDetail() {
+  // Leemos el item directamente desde el store global de Zustand
+  const item = useNavigationStore(state => state.itemSeleccionado) as PurchaseCardProps | null;
 
   // 1. Buscamos el detalle de la compra en el backend usando el ID
   const { data: compraCompleta, isLoading, isError } = useQuery({
@@ -23,13 +22,23 @@ const PurchaseDetail = ({ item }: PurchaseDetailProps) => {
     enabled: !!item?.id, // Solo ejecuta si hay un ID válido
   });
 
-  if (!item) return null;
+  // Fallback visual por si se recarga la app
+  if (!item) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ marginBottom: 16 }}>No se encontró el detalle de la compra.</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>Volver al listado</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Compra #{item.id}</Text>
-        <TouchableOpacity onPress={() => setVistaActual('lista')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backButtonText}>Volver</Text>
         </TouchableOpacity>
       </View>
@@ -54,7 +63,6 @@ const PurchaseDetail = ({ item }: PurchaseDetailProps) => {
         </View>
       </View>
 
-      {/* 2. Nueva tarjeta para los Renglones / Detalle de la mercadería */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Artículos Ingresados</Text>
         
@@ -69,7 +77,6 @@ const PurchaseDetail = ({ item }: PurchaseDetailProps) => {
         {compraCompleta?.detalles?.map((detalle: any, index: number) => (
           <View key={detalle.Id || index} style={styles.itemRow}>
             <View style={{ flex: 1 }}>
-              {/* Leemos el nombre del Articulo a través de la relación de Inventario que armaste en el backend */}
               <Text style={styles.itemName}>
                 {detalle.inventario?.articulo?.Nombre || 'Producto sin nombre'}
               </Text>
@@ -104,7 +111,7 @@ const PurchaseDetail = ({ item }: PurchaseDetailProps) => {
       </View>
     </ScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surfaceMuted, padding: 16 },
@@ -119,16 +126,11 @@ const styles = StyleSheet.create({
   valueMono: { fontSize: 14, fontFamily: TYPOGRAPHY.mono, color: COLORS.primary, fontWeight: 'bold' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   column: { width: '45%' },
-  
-  // Nuevos estilos para los items
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.divider },
   itemName: { fontSize: 14, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: 4 },
   itemMeta: { fontSize: 12, color: COLORS.textSecondary },
   itemSubtotal: { fontSize: 14, fontWeight: 'bold', color: COLORS.textPrimary, fontFamily: TYPOGRAPHY.mono },
-  
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   totalLabel: { fontSize: 12, fontWeight: 'bold', color: COLORS.textSecondary, textTransform: 'uppercase' },
   totalValue: { fontSize: TYPOGRAPHY.sizes.h4, fontWeight: '900', color: COLORS.textPrimary }
 });
-
-export default PurchaseDetail;

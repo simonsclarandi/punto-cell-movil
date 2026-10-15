@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity, RefreshControl, TextInput, Switch } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../constants/theme';
-import InventoryCard from './InventoryCard';
+import InventoryCard from '../../components/inventario/InventoryCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
-import { InventoryItem } from './InventoryDetail';
+import { InventoryItem } from '../detalle/inventario/[id]';
 import apiClient from '../../api/client';
+import { router } from 'expo-router';
 
 interface ExtendedInventoryItem extends InventoryItem {
   precioMayor: number;
@@ -45,8 +46,8 @@ const fetchInventario = async (): Promise<ExtendedInventoryItem[]> => {
 };
 
 export default function InventoryList() {
+  // Ya no traemos setVistaActual, solo usamos setItemSeleccionado
   const setItemSeleccionado = useNavigationStore(state => state.setItemSeleccionado);
-  const setVistaActual = useNavigationStore(state => state.setVistaActual);
 
   const [busqueda, setBusqueda] = useState('');
   const [mostrarAgotados, setMostrarAgotados] = useState(false);
@@ -134,8 +135,9 @@ export default function InventoryList() {
           <TouchableOpacity 
             activeOpacity={0.7} 
             onPress={() => {
+              // Guardamos en Zustand y navegamos con Expo Router
               setItemSeleccionado(item);
-              setVistaActual('detalle');
+              router.push(`/detalle/inventario/${item.id}`);
             }}
           >
             <InventoryCard 

@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity, TextInput, RefreshControl, ScrollView } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../constants/theme';
-import RepairCard, { RepairItem } from './RepairCard';
+import RepairCard, { RepairItem } from '../../components/reparaciones/RepairCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
 import apiClient from '../../api/client';
+import { router } from 'expo-router';
 
 interface FetchRepairsResponse {
   data: RepairItem[];
@@ -163,7 +164,7 @@ export default function RepairList() {
             activeOpacity={0.7} 
             onPress={() => {
               setItemSeleccionado(item);
-              setVistaActual('detalle_reparacion');
+              router.push(`/detalle/reparacion/${item.id}`);
             }}
           >
             <RepairCard 

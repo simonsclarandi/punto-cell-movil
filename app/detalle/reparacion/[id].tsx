@@ -1,17 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
-import { useNavigationStore } from '../../store/useNavigationStore';
-import { RepairItem } from './RepairCard';
-import apiClient from '../../api/client';
+import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../../constants/theme';
+import { useNavigationStore } from '../../../store/useNavigationStore';
+// ¡Importante! Corregí la ruta a la carpeta components:
+import { RepairItem } from '../../../components/reparaciones/RepairCard';
+import apiClient from '../../../api/client';
+import { router } from 'expo-router';
 
-interface RepairDetailProps {
-  item: RepairItem | null;
-}
-
-const RepairDetail = ({ item }: RepairDetailProps) => {
-  const setVistaActual = useNavigationStore(state => state.setVistaActual);
+export default function RepairDetail() {
+  const item = useNavigationStore(state => state.itemSeleccionado) as RepairItem | null;
 
   // Traemos el detalle completo de la orden de reparación
   const { data: ordenCompleta, isLoading, isError } = useQuery({
@@ -23,13 +21,22 @@ const RepairDetail = ({ item }: RepairDetailProps) => {
     enabled: !!item?.id, 
   });
 
-  if (!item) return null;
+  if (!item) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ marginBottom: 16 }}>No se encontró el detalle de la reparación.</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>Volver al listado</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Orden #{item.id}</Text>
-        <TouchableOpacity onPress={() => setVistaActual('lista')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backButtonText}>Volver</Text>
         </TouchableOpacity>
       </View>
@@ -61,12 +68,10 @@ const RepairDetail = ({ item }: RepairDetailProps) => {
           {item.estado}
         </Text>
 
-        {/* Indicador de carga para los datos profundos del backend */}
         {isLoading && (
           <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: 10, alignSelf: 'flex-start' }} />
         )}
 
-        {/* Ejemplo: Mostramos observaciones técnicas o presupuesto si el backend ya las devolvió */}
         {!isLoading && ordenCompleta?.Observaciones && (
           <View style={{ marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: COLORS.dividerSoft }}>
             <Text style={styles.label}>Observaciones Técnicas</Text>
@@ -78,7 +83,7 @@ const RepairDetail = ({ item }: RepairDetailProps) => {
       </View>
     </ScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surfaceMuted, padding: 16 },
@@ -95,5 +100,3 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   column: { width: '45%' },
 });
-
-export default RepairDetail;

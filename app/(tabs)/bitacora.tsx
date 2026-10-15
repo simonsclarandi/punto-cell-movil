@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, FlatList, ActivityIndicator, Text, StyleSheet, TextInput, Switch, RefreshControl, TouchableOpacity } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../constants/theme';
-import LogCard, { LogCardProps } from './LogCard';
+import LogCard, { LogCardProps } from '../../components/bitacora/LogCard';
 import apiClient from '../../api/client';
 
 interface LogItem extends LogCardProps {

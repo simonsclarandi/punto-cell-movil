@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity, TextInput, Switch, RefreshControl } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../constants/theme';
-import SaleCard, { SaleItem } from './SaleCard';
+import SaleCard, { SaleItem } from '../../components/ventas/SaleCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
 import apiClient from '../../api/client';
+import { router } from 'expo-router';
 
 interface FetchSalesResponse {
   data: SaleItem[];
@@ -130,7 +131,7 @@ export default function SaleList() {
             activeOpacity={0.7} 
             onPress={() => {
               setItemSeleccionado(item);
-              setVistaActual('detalle_venta');
+              router.push(`/detalle/venta/${item.id}`);
             }}
           >
             <SaleCard 

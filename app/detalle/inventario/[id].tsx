@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
-import { useNavigationStore } from '../../store/useNavigationStore';
+import { router } from 'expo-router';
+import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../../constants/theme';
+import { useNavigationStore } from '../../../store/useNavigationStore';
 
 export interface InventoryItem {
   id: number;
@@ -14,20 +15,28 @@ export interface InventoryItem {
   imagen: string;
 }
 
-interface InventoryDetailProps {
-  item: InventoryItem | null;
-}
+export default function InventoryDetail() {
+  // Leemos el item directamente desde el store global de Zustand
+  const item = useNavigationStore(state => state.itemSeleccionado) as InventoryItem | null;
 
-const InventoryDetail = ({ item }: InventoryDetailProps) => {
-  const setVistaActual = useNavigationStore(state => state.setVistaActual);
-
-  if (!item) return null;
+  // Si recargan la app estando en esta pantalla y se pierde el estado, mostramos un fallback
+  if (!item) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ marginBottom: 16 }}>No se encontró el detalle del producto.</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>Volver al listado</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Ficha Técnica #{item.id}</Text>
-        <TouchableOpacity onPress={() => setVistaActual('lista')} style={styles.backButton}>
+        {/* Cambiamos setVistaActual por router.back() */}
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backButtonText}>Volver</Text>
         </TouchableOpacity>
       </View>
@@ -55,7 +64,7 @@ const InventoryDetail = ({ item }: InventoryDetailProps) => {
         <View style={styles.row}>
           <View style={styles.column}>
             <Text style={styles.label}>Mayorista</Text>
-            <Text style={styles.value}>U$S {item.precioMenor - 100}</Text>
+            <Text style={styles.value}>U$S {item.precioMenor}</Text>
           </View>
           <View style={styles.column}>
             <Text style={styles.labelFinal}>Precio Público Final</Text>
@@ -65,7 +74,7 @@ const InventoryDetail = ({ item }: InventoryDetailProps) => {
       </View>
     </ScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background, padding: 16 },
@@ -85,5 +94,3 @@ const styles = StyleSheet.create({
   labelFinal: { fontSize: 10, fontWeight: 'bold', color: COLORS.success, textTransform: 'uppercase', marginTop: 8 },
   valueFinal: { fontSize: TYPOGRAPHY.sizes.h3, fontWeight: '900', color: COLORS.success }
 });
-
-export default InventoryDetail;
