@@ -91,6 +91,11 @@ const fetchInventario = async (): Promise<ExtendedInventoryItem[]> => {
       const idCat = item.articulo?.modelo?.IdCategoriaArticulo;
       const catSlug = (idCat && CATEGORY_MAP[idCat]) || 'otros';
 
+      const valorFinal = precioItem ? Number(precioItem.ValorFinal || 0) : 0;
+      const valorMayorista = precioItem?.ValorMayorista 
+        ? Number(precioItem.ValorMayorista) 
+        : (valorFinal > 0 ? valorFinal * 0.85 : 0);
+
       return {
         id: item.Id,
         producto: item.articulo ? item.articulo.Nombre : 'Sin nombre',
@@ -99,8 +104,8 @@ const fetchInventario = async (): Promise<ExtendedInventoryItem[]> => {
         imei: item.IMEI || 'N/A',
         color: item.color ? item.color.Nombre : 'N/A', 
         stock: item.Stock || 0,
-        precioMenor: precioItem ? precioItem.ValorFinal : 0, 
-        precioMayor: precioItem?.ValorMayorista || (precioItem ? precioItem.ValorFinal * 0.85 : 0), 
+        precioMenor: Number(valorFinal.toFixed(2)), 
+        precioMayor: Number(valorMayorista.toFixed(2)), 
         imagen: resolveItemImage(item), 
       };
     });

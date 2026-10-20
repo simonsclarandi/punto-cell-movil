@@ -62,8 +62,10 @@ export default function InventoryDetail() {
         imei: inv.IMEI || '---',
         color: inv.color?.Nombre || 'N/A',
         stock: inv.Stock || 0,
-        precioMenor: precioItem ? precioItem.ValorFinal : 0,
-        precioMayor: precioItem?.ValorFinal ? Number(precioItem.ValorFinal) * 0.85 : 0,
+        precioMenor: precioItem ? Number(Number(precioItem.ValorFinal || 0).toFixed(2)) : 0,
+        precioMayor: precioItem?.ValorMayorista
+          ? Number(Number(precioItem.ValorMayorista).toFixed(2))
+          : (precioItem?.ValorFinal ? Number((Number(precioItem.ValorFinal) * 0.85).toFixed(2)) : 0),
         imagen: getFullImageUrl(rawImg),
       };
     },

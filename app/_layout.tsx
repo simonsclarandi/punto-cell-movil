@@ -76,6 +76,7 @@ export default function RootLayout() {
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="detalle" options={{ presentation: 'card' }} />
+              <Stack.Screen name="dashboard/[modulo]" options={{ presentation: 'card' }} />
             </Stack>
           </SafeAreaView>
         </SafeAreaProvider>

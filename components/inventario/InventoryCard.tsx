@@ -18,6 +18,8 @@ const InventoryCard = ({ producto, modelo, stock, precio, imagen }: InventoryCar
     return COLORS.success;                  
   };
 
+  const precioFormateado = Number(precio || 0).toFixed(2);
+
   return (
     <View style={styles.card}>
       <Image 
@@ -27,14 +29,14 @@ const InventoryCard = ({ producto, modelo, stock, precio, imagen }: InventoryCar
       />
       
       <View style={styles.infoContainer}>
-        <Text style={styles.title}>{producto}</Text>
-        <Text style={styles.subtitle}>{modelo}</Text>
+        <Text style={styles.title} numberOfLines={1}>{producto}</Text>
+        <Text style={styles.subtitle} numberOfLines={1}>{modelo}</Text>
         
         <View style={styles.row}>
           <Text style={[styles.stock, { color: getStockColor() }]}>
             Stock: {stock} un.
           </Text>
-          <Text style={styles.price}>USD {precio}</Text>
+          <Text style={styles.price}>USD {precioFormateado}</Text>
         </View>
       </View>
     </View>

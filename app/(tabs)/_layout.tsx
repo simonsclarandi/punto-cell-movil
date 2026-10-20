@@ -1,9 +1,10 @@
 import React from 'react';
-import { TouchableOpacity, Alert } from 'react-native';
-import { Tabs } from 'expo-router';
+import { TouchableOpacity, Alert, View, Text, StyleSheet } from 'react-native';
+import { Tabs, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../constants/ThemeContext';
 import { useAuthStore } from '../../store/useAuthStore';
+import { COLORS, SHADOWS } from '../../constants/theme';
 import apiClient from '../../api/client';
 import { removeCookie } from '../../api/storage';
 
@@ -38,6 +39,20 @@ export default function TabLayout() {
     );
   };
 
+  const renderHeaderWithDashboard = (title: string, modulo: string) => (
+    <View style={styles.headerTitleRow}>
+      <TouchableOpacity 
+        style={styles.dashboardButton}
+        onPress={() => router.push(`/dashboard/${modulo}`)}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="stats-chart" size={13} color="#ffffff" style={{ marginRight: 4 }} />
+        <Text style={styles.dashboardButtonText}>Dashboard</Text>
+      </TouchableOpacity>
+      <Text style={[styles.headerTitleText, { color: theme.textPrimary }]}>{title}</Text>
+    </View>
+  );
+
   return (
     <Tabs
       screenOptions={{
@@ -56,11 +71,7 @@ export default function TabLayout() {
           elevation: 0, 
         },
         headerTintColor: theme.textPrimary,
-        headerTitleStyle: { 
-          fontWeight: 'bold',
-          fontSize: 18,
-        },
-        headerTitleAlign: 'center',
+        headerTitleAlign: 'left',
         headerRight: () => (
           <TouchableOpacity
             onPress={handleLogout}
@@ -77,7 +88,7 @@ export default function TabLayout() {
         name="inventario"
         options={{
           title: 'Inventario',
-          headerTitle: 'Gestión de Inventario',
+          headerTitle: () => renderHeaderWithDashboard('Inventario', 'inventario'),
           tabBarIcon: ({ color }) => <Ionicons name="cube-outline" size={24} color={color} />,
         }}
       />
@@ -87,7 +98,7 @@ export default function TabLayout() {
         name="ventas"
         options={{
           title: 'Ventas',
-          headerTitle: 'Registro de Ventas',
+          headerTitle: () => renderHeaderWithDashboard('Ventas', 'ventas'),
           tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={24} color={color} />,
         }}
       />
@@ -97,7 +108,7 @@ export default function TabLayout() {
         name="compras"
         options={{
           title: 'Compras',
-          headerTitle: 'Historial de Compras',
+          headerTitle: () => renderHeaderWithDashboard('Compras', 'compras'),
           tabBarIcon: ({ color }) => <Ionicons name="cart-outline" size={24} color={color} />,
         }}
       />
@@ -107,7 +118,7 @@ export default function TabLayout() {
         name="reparaciones"
         options={{
           title: 'Reparaciones',
-          headerTitle: 'Servicio Técnico',
+          headerTitle: () => renderHeaderWithDashboard('Reparaciones', 'reparaciones'),
           tabBarIcon: ({ color }) => <Ionicons name="build-outline" size={24} color={color} />,
         }}
       />
@@ -117,7 +128,7 @@ export default function TabLayout() {
         name="bitacora"
         options={{
           title: 'Bitácora',
-          headerTitle: 'Bitácora de Sistema',
+          headerTitle: () => renderHeaderWithDashboard('Bitácora', 'bitacora'),
           tabBarIcon: ({ color }) => <Ionicons name="shield-checkmark-outline" size={24} color={color} />,
           href: esAdminOEncargado ? '/bitacora' : null,
         }}
@@ -125,3 +136,31 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 4,
+  },
+  dashboardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 14,
+    marginRight: 10,
+    ...SHADOWS.lift,
+  },
+  dashboardButtonText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  headerTitleText: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+});
