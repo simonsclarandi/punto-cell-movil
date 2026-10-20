@@ -1,42 +1,107 @@
 import React, { useState } from 'react';
-import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity, RefreshControl, TextInput, Switch } from 'react-native';
+import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity, RefreshControl, TextInput, Switch, ScrollView } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../constants/theme';
 import InventoryCard from '../../components/inventario/InventoryCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
 import { InventoryItem } from '../detalle/inventario/[id]';
 import apiClient from '../../api/client';
+import { getFullImageUrl } from '../../constants/images';
 import { router } from 'expo-router';
 
 interface ExtendedInventoryItem extends InventoryItem {
   precioMayor: number;
+  categoria: string;
 }
+
+const CATEGORY_MAP: Record<number, string> = {
+  1: 'smartphone',
+  2: 'tablet',
+  3: 'notebook',
+  4: 'accesorio',
+  5: 'repuesto'
+};
+
+const CATEGORIES = [
+  { key: 'todas', label: 'Todos', icon: 'grid-outline' },
+  { key: 'smartphone', label: 'Celulares', icon: 'phone-portrait-outline' },
+  { key: 'tablet', label: 'Tablets', icon: 'tablet-portrait-outline' },
+  { key: 'notebook', label: 'Notebooks', icon: 'laptop-outline' },
+  { key: 'accesorio', label: 'Accesorios', icon: 'headset-outline' },
+  { key: 'repuesto', label: 'Repuestos', icon: 'hardware-chip-outline' },
+];
 
 const fetchInventario = async (): Promise<ExtendedInventoryItem[]> => {
   try {
-    const [resInventario, resPrecios] = await Promise.all([
+    // Consultamos inventarios, precios y catálogo público (con fotos reales de S3) en paralelo
+    const [resInventario, resPrecios, resCatalogo] = await Promise.all([
       apiClient.get('/inventario/inventarios'),
-      apiClient.get('/precios/precios-articulos') 
+      apiClient.get('/precios/precios-articulos'),
+      apiClient.get('/catalogo/productos').catch(() => ({ data: { data: { productos: [] } } }))
     ]);
     
-    const inventarioBase = resInventario.data.data; 
-    const preciosBase = resPrecios.data.data;
+    const inventarioBase = resInventario.data?.data || []; 
+    const preciosBase = resPrecios.data?.data || [];
+    const catalogoProductos: any[] = resCatalogo.data?.data?.productos || [];
+
+    // Mapeamos imágenes por ID de Inventario, Nombre de Modelo y Nombre de Artículo
+    const catalogoById = new Map<number, string>();
+    const catalogoByModel = new Map<string, string>();
+    const catalogoByName = new Map<string, string>();
+
+    catalogoProductos.forEach((prod) => {
+      const imgPortada = prod.imagenPortada || (prod.imagenes && prod.imagenes[0]) || null;
+      if (imgPortada) {
+        catalogoById.set(Number(prod.id), imgPortada);
+        if (prod.modelo) {
+          catalogoByModel.set(prod.modelo.toLowerCase().trim(), imgPortada);
+        }
+        if (prod.name) {
+          catalogoByName.set(prod.name.toLowerCase().trim(), imgPortada);
+        }
+      }
+    });
+
+    const resolveItemImage = (item: any): string => {
+      // 1. Coincidencia directa por Id de Inventario
+      const directMatch = catalogoById.get(item.Id);
+      if (directMatch) return getFullImageUrl(directMatch);
+
+      // 2. Coincidencia por Modelo de Artículo
+      const modelName = item.articulo?.modelo?.Nombre?.toLowerCase()?.trim();
+      if (modelName && catalogoByModel.has(modelName)) {
+        return getFullImageUrl(catalogoByModel.get(modelName));
+      }
+
+      // 3. Coincidencia por Nombre de Artículo
+      const artName = item.articulo?.Nombre?.toLowerCase()?.trim();
+      if (artName && catalogoByName.has(artName)) {
+        return getFullImageUrl(catalogoByName.get(artName));
+      }
+
+      return getFullImageUrl(null);
+    };
 
     return inventarioBase.map((item: any) => {
       const precioItem = preciosBase.find(
         (precio: any) => precio.IdInventario === item.Id 
       );
 
+      const idCat = item.articulo?.modelo?.IdCategoriaArticulo;
+      const catSlug = (idCat && CATEGORY_MAP[idCat]) || 'otros';
+
       return {
         id: item.Id,
         producto: item.articulo ? item.articulo.Nombre : 'Sin nombre',
         modelo: item.articulo?.modelo ? item.articulo.modelo.Nombre : 'Sin modelo',
+        categoria: catSlug,
         imei: item.IMEI || 'N/A',
         color: item.color ? item.color.Nombre : 'N/A', 
         stock: item.Stock || 0,
         precioMenor: precioItem ? precioItem.ValorFinal : 0, 
         precioMayor: precioItem?.ValorMayorista || (precioItem ? precioItem.ValorFinal * 0.85 : 0), 
-        imagen: 'https://picsum.photos/150', 
+        imagen: resolveItemImage(item), 
       };
     });
   } catch (error) {
@@ -50,6 +115,7 @@ export default function InventoryList() {
   const setItemSeleccionado = useNavigationStore(state => state.setItemSeleccionado);
 
   const [busqueda, setBusqueda] = useState('');
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todas');
   const [mostrarAgotados, setMostrarAgotados] = useState(false);
   const [esMayorista, setEsMayorista] = useState(false);
 
@@ -67,7 +133,11 @@ export default function InventoryList() {
       
     const coincideStock = mostrarAgotados ? item.stock === 0 : item.stock > 0;
     
-    return coincideBusqueda && coincideStock;
+    const coincideCategoria = 
+      categoriaSeleccionada === 'todas' || 
+      item.categoria.toLowerCase() === categoriaSeleccionada.toLowerCase();
+
+    return coincideBusqueda && coincideStock && coincideCategoria;
   });
 
   if (isLoading) {
@@ -100,6 +170,42 @@ export default function InventoryList() {
           value={busqueda}
           onChangeText={setBusqueda}
         />
+
+        {/* Selector Horizontal de Categorías */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryContainer}
+        >
+          {CATEGORIES.map((cat) => {
+            const isSelected = categoriaSeleccionada === cat.key;
+            return (
+              <TouchableOpacity
+                key={cat.key}
+                onPress={() => setCategoriaSeleccionada(cat.key)}
+                style={[
+                  styles.categoryChip,
+                  isSelected && styles.categoryChipSelected
+                ]}
+                activeOpacity={0.7}
+              >
+                <Ionicons 
+                  name={cat.icon as any} 
+                  size={15} 
+                  color={isSelected ? '#ffffff' : COLORS.textSecondary} 
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={[
+                  styles.categoryText,
+                  isSelected && styles.categoryTextSelected
+                ]}>
+                  {cat.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
         <View style={styles.switchesContainer}>
           <View style={styles.switchRow}>
             <Switch 
@@ -185,7 +291,36 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     borderWidth: 1,
     borderColor: COLORS.divider,
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  categoryContainer: {
+    paddingVertical: 4,
+    marginBottom: 10,
+    gap: 8,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceMuted,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.divider,
+    marginRight: 6,
+  },
+  categoryChipSelected: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  categoryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  categoryTextSelected: {
+    color: '#ffffff',
+    fontWeight: 'bold',
   },
   switchesContainer: {
     flexDirection: 'row',

@@ -3,39 +3,47 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useQuery } from '@tanstack/react-query';
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../../constants/theme';
 import { useNavigationStore } from '../../../store/useNavigationStore';
-// ¡Importante! Corregí la ruta a la carpeta components:
 import { RepairItem } from '../../../components/reparaciones/RepairCard';
 import apiClient from '../../../api/client';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 export default function RepairDetail() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const item = useNavigationStore(state => state.itemSeleccionado) as RepairItem | null;
+  const targetId = id || item?.id;
 
   // Traemos el detalle completo de la orden de reparación
   const { data: ordenCompleta, isLoading, isError } = useQuery({
-    queryKey: ['reparacionDetalle', item?.id],
+    queryKey: ['reparacionDetalle', targetId],
     queryFn: async () => {
-      const res = await apiClient.get(`/reparaciones/ordenes-reparacion/${item?.id}`);
+      const res = await apiClient.get(`/reparaciones/ordenes-reparacion/${targetId}`);
       return res.data.data;
     },
-    enabled: !!item?.id, 
+    enabled: !!targetId, 
   });
 
-  if (!item) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ marginBottom: 16 }}>No se encontró el detalle de la reparación.</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>Volver al listado</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // La observación en el backend vive en el historial de 'seguimientos'
+  const seguimientos = ordenCompleta?.seguimientos || [];
+  const ultimoSeguimiento = seguimientos.length > 0 ? seguimientos[seguimientos.length - 1] : null;
+  const observacionTecnica = ultimoSeguimiento?.ObservacionTecnico || ordenCompleta?.Observaciones || '';
+
+  const dispositivoNombre = ordenCompleta?.dispositivo?.modelo?.Nombre || item?.dispositivo || 'Dispositivo';
+  const clienteNombre = ordenCompleta?.dispositivo?.cliente 
+    ? `${ordenCompleta.dispositivo.cliente.Nombre} ${ordenCompleta.dispositivo.cliente.Apellido || ''}`.trim()
+    : (item?.cliente || 'Cliente');
+
+  const fallasArray = ordenCompleta?.fallas || [];
+  const fallasTexto = fallasArray.length > 0 
+    ? fallasArray.map((f: any) => f.Nombre).filter(Boolean).join(', ')
+    : (item?.falla || 'Revisión técnica');
+
+  const estadoTexto = ordenCompleta?.estado?.Nombre || item?.estado || 'En espera';
+  const fechaEmision = (ordenCompleta?.FechaEmision || item?.fecha || '').split('T')[0];
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Orden #{item.id}</Text>
+        <Text style={styles.headerTitle}>Orden #{targetId}</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backButtonText}>Volver</Text>
         </TouchableOpacity>
@@ -44,16 +52,16 @@ export default function RepairDetail() {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Datos del Equipo</Text>
         <Text style={styles.label}>Dispositivo</Text>
-        <Text style={styles.valueLarge}>{item.dispositivo}</Text>
+        <Text style={styles.valueLarge}>{dispositivoNombre}</Text>
 
         <View style={styles.grid}>
           <View style={styles.column}>
             <Text style={styles.label}>Cliente</Text>
-            <Text style={styles.value}>{item.cliente}</Text>
+            <Text style={styles.value}>{clienteNombre}</Text>
           </View>
           <View style={styles.column}>
             <Text style={styles.label}>Fecha Ingreso</Text>
-            <Text style={styles.valueMono}>{item.fecha}</Text>
+            <Text style={styles.valueMono}>{fechaEmision}</Text>
           </View>
         </View>
       </View>
@@ -61,22 +69,35 @@ export default function RepairDetail() {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Diagnóstico y Estado</Text>
         <Text style={styles.label}>Falla Reportada</Text>
-        <Text style={[styles.value, { marginBottom: 16 }]}>{item.falla}</Text>
+        <Text style={[styles.value, { marginBottom: 16 }]}>{fallasTexto}</Text>
         
         <Text style={styles.label}>Estado Actual</Text>
-        <Text style={[styles.valueLarge, { color: item.estado === 'terminado' ? COLORS.warning : COLORS.info, textTransform: 'capitalize' }]}>
-          {item.estado}
+        <Text style={[styles.valueLarge, { color: String(estadoTexto).toLowerCase() === 'terminado' ? COLORS.warning : COLORS.info, textTransform: 'capitalize' }]}>
+          {estadoTexto}
         </Text>
 
         {isLoading && (
           <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: 10, alignSelf: 'flex-start' }} />
         )}
 
-        {!isLoading && ordenCompleta?.Observaciones && (
+        {isError && (
+          <Text style={{ color: COLORS.error, fontSize: 12, marginTop: 8 }}>Error al consultar el detalle técnico.</Text>
+        )}
+
+        {observacionTecnica ? (
           <View style={{ marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: COLORS.dividerSoft }}>
             <Text style={styles.label}>Observaciones Técnicas</Text>
             <Text style={[styles.value, { fontWeight: 'normal', color: COLORS.textSecondary, marginTop: 4 }]}>
-              {ordenCompleta.Observaciones}
+              {observacionTecnica}
+            </Text>
+          </View>
+        ) : null}
+
+        {ordenCompleta?.TotalReparacion && (
+          <View style={{ marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: COLORS.dividerSoft }}>
+            <Text style={styles.label}>Total Presupuestado</Text>
+            <Text style={[styles.valueLarge, { color: COLORS.primary }]}>
+              U$S {Number(ordenCompleta.TotalReparacion).toFixed(2)}
             </Text>
           </View>
         )}

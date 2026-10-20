@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity, TextInput, Switch, RefreshControl } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../constants/theme';
+import { COLORS, SPACING, SHADOWS } from '../../constants/theme';
 import SaleCard, { SaleItem } from '../../components/ventas/SaleCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
 import apiClient from '../../api/client';
@@ -15,38 +15,41 @@ interface FetchSalesResponse {
 const fetchVentas = async ({ pageParam = 1 }: { pageParam?: number }): Promise<FetchSalesResponse> => {
   try {
     const limit = 15;
-    const response = await apiClient.get('/ventas', {
-      params: { 
-        page: pageParam, 
-        limit: limit 
-      }
-    });
+    // Usamos /ventas/historico porque es el endpoint que incluye las relaciones cliente y empleado
+    const response = await apiClient.get('/ventas/historico');
     
-    const ventasBase = response.data.data;
+    const ventasBase: any[] = response.data?.data || [];
 
-    const ventasMapeadas = ventasBase.map((item: any) => ({
+    const ventasMapeadas: SaleItem[] = ventasBase.map((item: any) => ({
       id: item.Id,
       fecha: item.Fecha ? item.Fecha.replace('T', ' ').substring(0, 16) : '',
       cliente: item.cliente ? `${item.cliente.Nombre} ${item.cliente.Apellido || ''}`.trim() : 'Consumidor Final',
-      vendedor: item.empleado ? item.empleado.Nombre : 'Vendedor Desconocido',
+      vendedor: item.empleado ? `${item.empleado.Nombre} ${item.empleado.Apellido || ''}`.trim() : 'Vendedor Desconocido',
       total: parseFloat(item.TotalVenta) || 0,
       estadoPago: item.EstadoPago === true,
-      detalle: [] 
+      detalle: (item.detalles || []).map((d: any) => ({
+        nombre: d.inventario?.articulo?.Nombre || 'Artículo',
+        cantidad: d.Cantidad,
+        subtotal: Number(d.Cantidad) * Number(d.PrecioUnitario)
+      }))
     }));
 
+    // Paginación en cliente ya que el endpoint devuelve el histórico completo
+    const startIndex = (pageParam - 1) * limit;
+    const paginatedData = ventasMapeadas.slice(startIndex, startIndex + limit);
+
     return {
-      data: ventasMapeadas,
-      nextPage: ventasBase.length === limit ? pageParam + 1 : null,
+      data: paginatedData,
+      nextPage: startIndex + limit < ventasMapeadas.length ? pageParam + 1 : null,
     };
   } catch (error) {
-    console.error("Error al traer el historial de ventas:", error);
+    console.error('[Ventas] Error al traer el historial de ventas:', error);
     throw error;
   }
 };
 
 export default function SaleList() {
   const setItemSeleccionado = useNavigationStore(state => state.setItemSeleccionado);
-  const setVistaActual = useNavigationStore(state => state.setVistaActual);
 
   const [busqueda, setBusqueda] = useState('');
   const [soloPendientes, setSoloPendientes] = useState(false);
@@ -84,9 +87,9 @@ export default function SaleList() {
   if (isError) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={{ color: COLORS.error, fontWeight: 'bold' }}>Error al cargar los datos.</Text>
-        <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 12, padding: 10, backgroundColor: COLORS.primaryLight, borderRadius: SPACING.smallRadius }}>
-          <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>Reintentar</Text>
+        <Text style={{ color: COLORS.error, fontWeight: 'bold' }}>Error al cargar las ventas.</Text>
+        <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
+          <Text style={styles.retryText}>Reintentar</Text>
         </TouchableOpacity>
       </View>
     );
@@ -94,7 +97,6 @@ export default function SaleList() {
 
   return (
     <View style={styles.container}>
-      
       {/* Barra de Filtros */}
       <View style={styles.filterContainer}>
         <TextInput
@@ -163,6 +165,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 10, color: COLORS.textSecondary, fontWeight: 'bold' },
+  retryButton: { marginTop: 12, padding: 10, backgroundColor: COLORS.primaryLight, borderRadius: SPACING.smallRadius },
+  retryText: { color: COLORS.primary, fontWeight: 'bold' },
   filterContainer: {
     backgroundColor: COLORS.paper,
     padding: 16,

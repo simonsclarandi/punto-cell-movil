@@ -20,7 +20,11 @@ const InventoryCard = ({ producto, modelo, stock, precio, imagen }: InventoryCar
 
   return (
     <View style={styles.card}>
-      <Image source={{ uri: imagen }} style={styles.image} />
+      <Image 
+        source={{ uri: imagen }} 
+        style={styles.image} 
+        resizeMode="contain"
+      />
       
       <View style={styles.infoContainer}>
         <Text style={styles.title}>{producto}</Text>
@@ -48,7 +52,13 @@ const styles = StyleSheet.create({
     borderColor: COLORS.divider,
     ...SHADOWS.lift,
   },
-  image: { width: 60, height: 60, borderRadius: SPACING.smallRadius, marginRight: 12 },
+  image: { 
+    width: 60, 
+    height: 60, 
+    borderRadius: SPACING.smallRadius, 
+    marginRight: 12, 
+    backgroundColor: '#f8fafc' 
+  },
   infoContainer: { flex: 1, justifyContent: 'center' },
   title: { fontSize: TYPOGRAPHY.sizes.h6, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 2 },
   subtitle: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 8 },

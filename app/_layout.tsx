@@ -1,25 +1,61 @@
-import React from 'react';
-import { StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// Importamos el estado de autenticación y el login
 import { useAuthStore } from '../store/useAuthStore';
 import LoginScreen from '../components/auth/LoginScreen';
-
-// Tu nuevo Contexto de Tema y Colores
 import { ThemeProvider } from '../constants/ThemeContext';
 import { COLORS } from '../constants/theme';
+import apiClient from '../api/client';
+import { initializeSessionFromUser, destroySession } from '../api/session';
 
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
-  // Leemos el estado global de zustand tal como lo hacías antes
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const isLoadingSession = useAuthStore(state => state.isLoadingSession);
+  const login = useAuthStore(state => state.login);
+  const logout = useAuthStore(state => state.logout);
+  const setIsLoadingSession = useAuthStore(state => state.setIsLoadingSession);
 
-  // Si no está logueado, devolvemos la pantalla de Login y cortamos la ejecución
+  useEffect(() => {
+    const bootstrapSession = async () => {
+      try {
+        // Consultamos /auth/me para recuperar la sesión activa del usuario si existe
+        const res = await apiClient.get('/auth/me');
+        const user = res.data?.data?.user;
+        if (user) {
+          console.log('[Bootstrap] Sesión previa recuperada para:', user.Nombre);
+          await initializeSessionFromUser(user);
+          login(user);
+        } else {
+          await destroySession();
+          logout();
+        }
+      } catch (err) {
+        console.log('[Bootstrap] No hay sesión previa activa.');
+      } finally {
+        setIsLoadingSession(false);
+      }
+    };
+
+    bootstrapSession();
+  }, []);
+
+  if (isLoadingSession) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={[styles.safeArea, styles.center]}>
+          <StatusBar style="dark" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <SafeAreaProvider>
@@ -31,25 +67,16 @@ export default function RootLayout() {
     );
   }
 
-  // Si está logueado, envuelve la app con Providers y el Enrutador
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <SafeAreaProvider>
           <SafeAreaView style={styles.safeArea}>
             <StatusBar style="dark" />
-            
-            {/* 
-              Stack de Expo Router reemplaza a tu getContenido() 
-              Maneja la superposición de pantallas automáticamente.
-            */}
             <Stack screenOptions={{ headerShown: false }}>
-              {/* Las solapas principales */}
               <Stack.Screen name="(tabs)" />
-              {/* La carpeta de detalles (se abrirán como tarjetas por encima) */}
               <Stack.Screen name="detalle" options={{ presentation: 'card' }} />
             </Stack>
-
           </SafeAreaView>
         </SafeAreaProvider>
       </ThemeProvider>
@@ -59,4 +86,5 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.background },
+  center: { justifyContent: 'center', alignItems: 'center' },
 });

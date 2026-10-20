@@ -1,15 +1,46 @@
 import React from 'react';
+import { TouchableOpacity, Alert } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../constants/ThemeContext';
+import { useAuthStore } from '../../store/useAuthStore';
+import apiClient from '../../api/client';
+import { removeCookie } from '../../api/storage';
 
 export default function TabLayout() {
   const { theme } = useTheme();
+  const logout = useAuthStore(state => state.logout);
+  const usuario = useAuthStore(state => state.usuario);
+
+  const esAdminOEncargado = usuario ? (usuario.IdRol === 1 || usuario.IdRol === 2) : false;
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Estás seguro de que deseás salir del sistema?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Salir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiClient.post('/auth/logout');
+            } catch (e) {
+              console.log('[Logout] Error al notificar al backend:', e);
+            } finally {
+              await removeCookie();
+              logout();
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <Tabs
       screenOptions={{
-        // ─── Estilos de la barra inferior (BottomNav) ───
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.textDisabled,
         tabBarStyle: {
@@ -19,27 +50,34 @@ export default function TabLayout() {
           paddingBottom: 8,
           paddingTop: 8,
         },
-        
-        // ─── Estilos de la barra superior (Header) ───
         headerStyle: { 
-          backgroundColor: theme.background, // Podés cambiarlo a theme.paper o theme.primary
-          shadowColor: 'transparent', // Le quita la sombra para que se funda mejor con el fondo
+          backgroundColor: theme.background,
+          shadowColor: 'transparent',
           elevation: 0, 
         },
-        headerTintColor: theme.textPrimary, // Color del texto del título
+        headerTintColor: theme.textPrimary,
         headerTitleStyle: { 
           fontWeight: 'bold',
           fontSize: 18,
         },
-        headerTitleAlign: 'center', // Centra el título en Android e iOS
+        headerTitleAlign: 'center',
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={handleLogout}
+            style={{ marginRight: 16, padding: 6 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="log-out-outline" size={24} color={theme.error} />
+          </TouchableOpacity>
+        ),
       }}
     >
       {/* 1. INVENTARIO */}
       <Tabs.Screen
         name="inventario"
         options={{
-          title: 'Inventario', // Texto chiquito de la barra inferior
-          headerTitle: 'Gestión de Inventario', // Texto grande del header superior
+          title: 'Inventario',
+          headerTitle: 'Gestión de Inventario',
           tabBarIcon: ({ color }) => <Ionicons name="cube-outline" size={24} color={color} />,
         }}
       />
@@ -74,13 +112,14 @@ export default function TabLayout() {
         }}
       />
       
-      {/* 5. BITÁCORA */}
+      {/* 5. BITÁCORA (Acceso exclusivo Administrador / Encargado) */}
       <Tabs.Screen
         name="bitacora"
         options={{
           title: 'Bitácora',
           headerTitle: 'Bitácora de Sistema',
           tabBarIcon: ({ color }) => <Ionicons name="shield-checkmark-outline" size={24} color={color} />,
+          href: esAdminOEncargado ? '/bitacora' : null,
         }}
       />
     </Tabs>

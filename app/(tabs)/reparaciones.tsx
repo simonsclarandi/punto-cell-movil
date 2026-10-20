@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity, TextInput, RefreshControl, ScrollView } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../constants/theme';
+import { COLORS, SPACING, SHADOWS } from '../../constants/theme';
 import RepairCard, { RepairItem } from '../../components/reparaciones/RepairCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
 import apiClient from '../../api/client';
@@ -22,23 +22,29 @@ const fetchReparaciones = async ({ pageParam = 1 }: { pageParam?: number }): Pro
     const payload = response.data.data;
     const reparacionesBase = Array.isArray(payload) ? payload : (payload.data || payload.rows || []);
 
-    const reparacionesMapeadas = reparacionesBase.map((item: any) => ({
-      id: item.Id,
-      fecha: item.FechaEmision ? item.FechaEmision.split('T')[0] : '',
-      cliente: item.dispositivo?.cliente 
-        ? `${item.dispositivo.cliente.Nombre} ${item.dispositivo.cliente.Apellido}`.trim() 
-        : 'Cliente Desconocido',
-      dispositivo: item.dispositivo?.modelo?.Nombre || 'Dispositivo en revisión',
-      falla: item.FallaReportada || 'Revisión técnica',
-      estado: item.estado ? item.estado.Nombre.toLowerCase() : 'pendiente',
-    }));
+    const reparacionesMapeadas = reparacionesBase.map((item: any) => {
+      // El backend devuelve las fallas como arreglo en la relación 'fallas' (no 'FallaReportada')
+      const fallasArray = item.fallas || item.Fallas || [];
+      const nombresFallas = fallasArray.map((f: any) => f.Nombre).filter(Boolean).join(', ');
+
+      return {
+        id: item.Id,
+        fecha: item.FechaEmision ? item.FechaEmision.split('T')[0] : '',
+        cliente: item.dispositivo?.cliente 
+          ? `${item.dispositivo.cliente.Nombre} ${item.dispositivo.cliente.Apellido || ''}`.trim() 
+          : 'Cliente Desconocido',
+        dispositivo: item.dispositivo?.modelo?.Nombre || 'Dispositivo en revisión',
+        falla: nombresFallas || item.FallaReportada || 'Revisión técnica',
+        estado: item.estado ? item.estado.Nombre.toLowerCase() : 'en espera',
+      };
+    });
 
     return {
       data: reparacionesMapeadas,
       nextPage: reparacionesBase.length >= limit ? pageParam + 1 : null,
     };
   } catch (error) {
-    console.error("Error al traer reparaciones:", error);
+    console.error('[Reparaciones] Error al traer reparaciones:', error);
     throw error;
   }
 };
@@ -57,7 +63,6 @@ const FILTROS_ESTADO: { value: FiltroEstado, label: string }[] = [
 
 export default function RepairList() {
   const setItemSeleccionado = useNavigationStore(state => state.setItemSeleccionado);
-  const setVistaActual = useNavigationStore(state => state.setVistaActual);
 
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>('activas');
@@ -81,7 +86,7 @@ export default function RepairList() {
       
     let coincideEstado = true;
     if (filtroEstado === 'activas') {
-      coincideEstado = !['entregado', 'anulado', 'cancelado'].includes(item.estado);
+      coincideEstado = !['entregado', 'anulado', 'cancelado', 'abandonado'].includes(item.estado);
     } else if (filtroEstado !== 'todas') {
       coincideEstado = item.estado === filtroEstado;
     }
@@ -89,7 +94,7 @@ export default function RepairList() {
     return coincideBusqueda && coincideEstado;
   });
 
-  const activas = reparacionesAll.filter(r => !['entregado', 'anulado', 'cancelado'].includes(r.estado)).length;
+  const activas = reparacionesAll.filter(r => !['entregado', 'anulado', 'cancelado', 'abandonado'].includes(r.estado)).length;
   const terminados = reparacionesAll.filter(r => r.estado === 'terminado' || r.estado === 'para entregar').length;
 
   if (isLoading) {
@@ -104,9 +109,9 @@ export default function RepairList() {
   if (isError) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={{ color: COLORS.error, fontWeight: 'bold' }}>Error al cargar los datos.</Text>
-        <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 12, padding: 10, backgroundColor: COLORS.primaryLight, borderRadius: SPACING.smallRadius }}>
-          <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>Reintentar</Text>
+        <Text style={{ color: COLORS.error, fontWeight: 'bold' }}>Error al cargar las reparaciones.</Text>
+        <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
+          <Text style={styles.retryText}>Reintentar</Text>
         </TouchableOpacity>
       </View>
     );
@@ -127,7 +132,6 @@ export default function RepairList() {
 
   return (
     <View style={styles.container}>
-      
       <View style={styles.filterContainer}>
         <TextInput
           style={styles.searchInput}
@@ -195,6 +199,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 10, color: COLORS.textSecondary, fontWeight: 'bold' },
+  retryButton: { marginTop: 12, padding: 10, backgroundColor: COLORS.primaryLight, borderRadius: SPACING.smallRadius },
+  retryText: { color: COLORS.primary, fontWeight: 'bold' },
   kpiContainer: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   kpiCard: { flex: 1, backgroundColor: COLORS.paper, padding: 12, borderRadius: 8, borderWidth: 1 },
   kpiLabel: { fontSize: 10, color: COLORS.textSecondary, fontWeight: 'bold', textTransform: 'uppercase' },

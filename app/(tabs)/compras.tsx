@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, FlatList, ActivityIndicator, Text, StyleSheet, TouchableOpacity, TextInput, Switch, RefreshControl } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../constants/theme';
+import { COLORS, SPACING, SHADOWS } from '../../constants/theme';
 import PurchaseCard, { PurchaseCardProps } from '../../components/compras/PurchaseCard';
 import { useNavigationStore } from '../../store/useNavigationStore';
 import apiClient from '../../api/client';
@@ -15,24 +15,31 @@ interface FetchComprasResponse {
 const fetchCompras = async ({ pageParam = 1 }: { pageParam?: number }): Promise<FetchComprasResponse> => {
   try {
     const limit = 15;
-    const response = await apiClient.get('/compras/compras', {
-      params: { 
-        page: pageParam, 
-        limit: limit 
-      }
-    });
+    // Traemos compras y proveedores en paralelo para mapear los nombres (sin parámetros de paginación conflictivos con SQL Server)
+    const [resCompras, resProveedores] = await Promise.all([
+      apiClient.get('/compras/compras'),
+      apiClient.get('/compras/proveedores').catch(() => ({ data: { data: [] } }))
+    ]);
     
-    const comprasBase = response.data.data;
+    const proveedores: any[] = resProveedores.data?.data || [];
+    const provMap: Record<number, string> = {};
+    proveedores.forEach((p) => {
+      provMap[p.Id] = p.Nombre;
+    });
+
+    const comprasBase: any[] = resCompras.data?.data || [];
 
     const comprasMapeadas = comprasBase.map((item: any) => {
       let condicionTexto = 'Pendiente';
       if (item.EstadoPago === 2) condicionTexto = 'Pago Parcial';
       if (item.EstadoPago === 3) condicionTexto = 'Pagado';
 
+      const nombreProveedor = item.proveedor?.Nombre || provMap[item.IdProveedor] || `Proveedor #${item.IdProveedor}`;
+
       return {
         id: item.Id,
         fecha: item.Fecha ? item.Fecha.split('T')[0] : '', 
-        proveedor: item.proveedor ? item.proveedor.Nombre : `Proveedor #${item.IdProveedor}`,
+        proveedor: nombreProveedor,
         total: parseFloat(item.TotalCosto) || 0,
         saldo: parseFloat(item.SaldoPendiente) || 0,
         estadoPago: item.EstadoPago || 1,
@@ -40,19 +47,22 @@ const fetchCompras = async ({ pageParam = 1 }: { pageParam?: number }): Promise<
       };
     });
 
+    // Paginación en cliente para renderizado suave
+    const startIndex = (pageParam - 1) * limit;
+    const paginatedData = comprasMapeadas.slice(startIndex, startIndex + limit);
+
     return {
-      data: comprasMapeadas,
-      nextPage: comprasBase.length === limit ? pageParam + 1 : null,
+      data: paginatedData,
+      nextPage: startIndex + limit < comprasMapeadas.length ? pageParam + 1 : null,
     };
   } catch (error) {
-    console.error("Error al traer el historial de compras:", error);
+    console.error('[Compras] Error al traer el historial de compras:', error);
     throw error;
   }
 };
 
 export default function PurchaseList() {
   const setItemSeleccionado = useNavigationStore(state => state.setItemSeleccionado);
-  const setVistaActual = useNavigationStore(state => state.setVistaActual);
 
   const [busqueda, setBusqueda] = useState('');
   const [soloDeudas, setSoloDeudas] = useState(false);
@@ -88,9 +98,9 @@ export default function PurchaseList() {
   if (isError) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={{ color: COLORS.error, fontWeight: 'bold' }}>Error al cargar los datos.</Text>
-        <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 12, padding: 10, backgroundColor: COLORS.primaryLight, borderRadius: SPACING.smallRadius }}>
-          <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>Reintentar</Text>
+        <Text style={{ color: COLORS.error, fontWeight: 'bold' }}>Error al cargar las compras.</Text>
+        <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
+          <Text style={styles.retryText}>Reintentar</Text>
         </TouchableOpacity>
       </View>
     );
@@ -98,7 +108,6 @@ export default function PurchaseList() {
 
   return (
     <View style={styles.container}>
-      
       {/* Barra de Filtros */}
       <View style={styles.filterContainer}>
         <TextInput
@@ -166,6 +175,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 10, color: COLORS.textSecondary, fontWeight: 'bold' },
+  retryButton: { marginTop: 12, padding: 10, backgroundColor: COLORS.primaryLight, borderRadius: SPACING.smallRadius },
+  retryText: { color: COLORS.primary, fontWeight: 'bold' },
   filterContainer: {
     backgroundColor: COLORS.paper,
     padding: 16,

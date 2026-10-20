@@ -4,6 +4,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../../constants/theme';
 import LogCard, { LogCardProps } from '../../components/bitacora/LogCard';
 import apiClient from '../../api/client';
+import { useAuthStore } from '../../store/useAuthStore';
 
 interface LogItem extends LogCardProps {
   id: number;
@@ -16,47 +17,92 @@ interface FetchLogsResponse {
 
 const fetchLogs = async ({ pageParam = 1 }: { pageParam?: number }): Promise<FetchLogsResponse> => {
   try {
-    const limit = 15; 
-    const response = await apiClient.get('/auditoria/bitacoras', {
-      params: { 
-        page: pageParam, 
-        limit: limit 
-      }
+    const limit = 20; 
+    // Traemos bitácora, usuarios y sucursales para mapear nombres completos (usando /usuarios y sin params conflictivos)
+    const [resLogs, resEmps, resSucs] = await Promise.all([
+      apiClient.get('/auditoria/bitacoras'),
+      apiClient.get('/usuarios').catch(() => ({ data: { data: [] } })),
+      apiClient.get('/usuarios/sucursales').catch(() => ({ data: { data: [] } }))
+    ]);
+
+    const emps: any[] = resEmps.data?.data || [];
+    const sucs: any[] = resSucs.data?.data || [];
+
+    const empMap: Record<number, string> = {};
+    emps.forEach((e) => {
+      empMap[e.Id] = `${e.Nombre} ${e.Apellido || ''}`.trim() || e.UsuarioEmpleado;
+    });
+
+    const sucMap: Record<number, string> = {};
+    sucs.forEach((s) => {
+      sucMap[s.Id] = s.Nombre;
     });
     
-    const payload = response.data.data;
+    const payload = resLogs.data?.data;
     const logsBase = Array.isArray(payload) ? payload : (payload.data || payload.rows || []);
 
-    const logsMapeados = logsBase.map((item: any) => ({
-      id: item.Id,
-      fecha: item.Fecha ? item.Fecha.replace('T', ' ').substring(0, 19) : '',
-      sucursal: item.sucursal ? item.sucursal.Nombre : (item.IdSucursal ? `Sucursal #${item.IdSucursal}` : 'Global'),
-      usuario: item.empleado ? `${item.empleado.Nombre} ${item.empleado.Apellido}`.trim() : (item.IdEmpleado ? `Usuario #${item.IdEmpleado}` : 'Sistema / Anónimo'),
-      accion: item.Accion || 'Acción registrada',
-      detalle: item.Detalle || 'Sin detalle',
-      ip: item.IpAddress || 'Desconocida'
-    }));
+    const logsMapeados = logsBase.map((item: any) => {
+      const nombreUsuario = item.empleado 
+        ? `${item.empleado.Nombre} ${item.empleado.Apellido || ''}`.trim()
+        : (empMap[item.IdEmpleado] || (item.IdEmpleado ? `Usuario #${item.IdEmpleado}` : 'Sistema / Anónimo'));
+
+      const nombreSucursal = item.sucursal 
+        ? item.sucursal.Nombre 
+        : (sucMap[item.IdSucursal] || (item.IdSucursal ? `Sucursal #${item.IdSucursal}` : 'Global'));
+
+      return {
+        id: item.Id,
+        fecha: item.Fecha ? item.Fecha.replace('T', ' ').substring(0, 19) : '',
+        sucursal: nombreSucursal,
+        usuario: nombreUsuario,
+        accion: item.Accion || 'Acción registrada',
+        detalle: item.Detalle || 'Sin detalle',
+        ip: item.IpAddress || 'Desconocida'
+      };
+    });
+
+    // Paginación en cliente para renderizado suave
+    const startIndex = (pageParam - 1) * limit;
+    const paginatedData = logsMapeados.slice(startIndex, startIndex + limit);
 
     return {
-      data: logsMapeados,
-      nextPage: logsBase.length === limit ? pageParam + 1 : null,
+      data: paginatedData,
+      nextPage: startIndex + limit < logsMapeados.length ? pageParam + 1 : null,
     };
-  } catch (error) {
-    console.error("Error al traer la bitácora:", error);
+  } catch (error: any) {
+    console.error('[Bitácora] Error al traer la bitácora:', error);
     throw error;
   }
 };
 
 export default function LogList() {
+  const usuario = useAuthStore(state => state.usuario);
+  const esAdmin = usuario ? (usuario.IdRol === 1 || usuario.IdRol === 2) : false;
+
   const [busqueda, setBusqueda] = useState('');
   const [soloFallos, setSoloFallos] = useState(false);
 
-  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } = useInfiniteQuery({
+  const { data, isLoading, isError, error, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } = useInfiniteQuery({
     queryKey: ['auditoria'],
     queryFn: fetchLogs,
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 1, 
+    enabled: esAdmin,
   });
+
+  if (!esAdmin) {
+    return (
+      <View style={[styles.container, styles.centerContainer, { padding: 24 }]}>
+        <Text style={{ fontSize: 40, marginBottom: 12 }}>🔒</Text>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', color: COLORS.textPrimary, textAlign: 'center', marginBottom: 8 }}>
+          Acceso Restringido
+        </Text>
+        <Text style={{ color: COLORS.textSecondary, textAlign: 'center' }}>
+          La bitácora de auditoría y seguridad requiere permisos de Administrador o Encargado.
+        </Text>
+      </View>
+    );
+  }
 
   const logsAll = data?.pages.flatMap(page => page.data) || [];
 
@@ -68,7 +114,7 @@ export default function LogList() {
       item.accion.toLowerCase().includes(texto) ||
       item.detalle.toLowerCase().includes(texto);
       
-    const esFallo = item.accion.toLowerCase().includes('fallido') || item.accion.toLowerCase().includes('rechaz');
+    const esFallo = item.accion.toLowerCase().includes('fall') || item.accion.toLowerCase().includes('rechaz');
     const coincideEstado = soloFallos ? esFallo : true;
     
     return coincideBusqueda && coincideEstado;
@@ -87,19 +133,23 @@ export default function LogList() {
   }
 
   if (isError) {
+    const isForbidden = (error as any)?.response?.status === 403;
     return (
-      <View style={styles.centerContainer}>
-        <Text style={{ color: COLORS.error, fontWeight: 'bold' }}>Error al cargar los registros.</Text>
-        <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 12, padding: 10, backgroundColor: COLORS.primaryLight, borderRadius: SPACING.smallRadius }}>
-          <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>Reintentar</Text>
-        </TouchableOpacity>
+      <View style={[styles.centerContainer, { padding: 20 }]}>
+        <Text style={{ color: COLORS.error, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 }}>
+          {isForbidden ? 'Acceso denegado por permisos de rol.' : 'Error al cargar los registros de auditoría.'}
+        </Text>
+        {!isForbidden && (
+          <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 12, padding: 10, backgroundColor: COLORS.primaryLight, borderRadius: SPACING.smallRadius }}>
+            <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>Reintentar</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      
       {/* Barra de Filtros */}
       <View style={styles.filterContainer}>
         <TextInput
@@ -177,8 +227,6 @@ const styles = StyleSheet.create({
   kpiLabel: { fontSize: TYPOGRAPHY.sizes.eyebrow, color: COLORS.textSecondary, fontWeight: 'bold', textTransform: 'uppercase' },
   kpiValue: { fontSize: TYPOGRAPHY.sizes.h5, fontWeight: 'bold', color: COLORS.textPrimary, marginTop: 4 },
   listContent: { paddingBottom: 40, paddingHorizontal: 16 },
-  
-  // Estilos de los Filtros
   filterContainer: {
     backgroundColor: COLORS.paper,
     padding: 16,

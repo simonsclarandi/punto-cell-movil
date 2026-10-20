@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SHADOWS, SPACING } from '../../constants/theme';
 import { useAuthStore } from '../../store/useAuthStore';
-import apiClient from '../../api/client';
+import apiClient, { API_URL } from '../../api/client';
+import { initializeSessionFromUser, destroySession } from '../../api/session';
+import RecaptchaModal from './RecaptchaModal';
 
-const TEST_USER = { usuario: 'admin', password: 'talleres123456' };
+
+const TEST_USER = { usuario: 'mfanara', password: 'talleres123456' };
 
 export default function LoginScreen() {
   const login = useAuthStore(state => state.login);
@@ -14,51 +17,99 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [captchaModalVisible, setCaptchaModalVisible] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
 
   const fillTestUser = () => {
     setForm(TEST_USER);
     setError('');
+    setCaptchaToken('');
   };
 
-  const handleLogin = async () => {
-    if (!form.usuario || !form.password) {
-      setError('Por favor completá todos los campos.');
-      return;
-    }
-
+  const executeLogin = async (tokenParaEnviar: string) => {
     setLoading(true);
     setError('');
 
     try {
-      // 1. Enviamos Identificador y Pwd tal como exige el backend
+      // Enviamos Identificador, Pwd y el RecaptchaToken resuelto
       const res = await apiClient.post('/auth/login', {
-        Identificador: form.usuario,
-        Pwd: form.password
+        Identificador: form.usuario.trim(),
+        Pwd: form.password,
+        RecaptchaToken: tokenParaEnviar
       });
 
-      // 2. Extraemos el usuario y el token de res.data.data
-      const { user, token } = res.data.data;
+      const user = res.data?.data?.user;
 
-      // 3. Inyectamos el token en Axios
-      if (token) {
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      if (user) {
+        // Inicializamos la cookie de sesión firmada en SecureStore
+        await initializeSessionFromUser(user);
+        login(user);
+      } else {
+        setError('Respuesta inesperada del servidor.');
       }
 
-      // 4. Guardamos la sesión
-      login(user);
-
     } catch (err: any) {
-      // Ampliamos la captura de errores para ver el mensaje real del backend
+      // Los tokens de reCAPTCHA son de un solo uso; reseteamos ante cualquier error
+      setCaptchaToken('');
+
       if (err.response) {
-        setError(err.response.data?.message || 'Credenciales incorrectas o error en el servidor.');
-        console.error("Error del backend:", err.response.data);
+        const msg = err.response.data?.message || (Array.isArray(err.response.data?.errors) ? err.response.data.errors.join(' | ') : '');
+        
+        if (err.response.status === 403 && /captcha/i.test(msg)) {
+          setError('El captcha expiró o no fue válido. Por favor completalo nuevamente.');
+        } else if (err.response.status === 400 && /sesi[oó]n activa/i.test(msg)) {
+          // Si el servidor indica sesión activa, recuperamos el usuario mediante /auth/me e ingresamos
+          try {
+            console.log('[Login] Sesión activa detectada en el servidor. Recuperando sesión con /auth/me...');
+            const meRes = await apiClient.get('/auth/me');
+            const activeUser = meRes.data?.data?.user;
+            if (activeUser) {
+              await initializeSessionFromUser(activeUser);
+              login(activeUser);
+              return;
+            }
+          } catch (meErr) {
+            console.warn('[Login] No se pudo recuperar usuario vía /auth/me:', meErr);
+            // Si /auth/me fallara, reseteamos la sesión en backend y localmente
+            try {
+              await apiClient.post('/auth/logout');
+            } catch (_) {}
+            await destroySession();
+            setError('Sesión anterior expirada en el servidor. La sesión fue reseteada, por favor intentá ingresar nuevamente.');
+            return;
+          }
+        } else {
+          setError(msg || 'Credenciales incorrectas o error en el servidor.');
+        }
       } else {
-        setError('No se pudo conectar con el servidor. Verificá tu IP y conexión Wi-Fi.');
-        console.error("Error de red:", err);
+        setError(`No se pudo conectar con el servidor en ${API_URL}. Verificá que el backend esté corriendo y la IP sea correcta.`);
+        console.error('[Login] Error de red:', err);
       }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStartLogin = () => {
+    if (!form.usuario.trim() || !form.password) {
+      setError('Por favor completá todos los campos.');
+      return;
+    }
+    setError('');
+
+    // Si ya tenemos token, mandamos el login; si no, abrimos el modal de reCAPTCHA
+    if (captchaToken) {
+      executeLogin(captchaToken);
+    } else {
+      setCaptchaModalVisible(true);
+    }
+  };
+
+  const handleCaptchaSuccess = (token: string) => {
+    setCaptchaToken(token);
+    setCaptchaModalVisible(false);
+    // Ejecuta el login inmediatamente con el token obtenido
+    executeLogin(token);
   };
 
   return (
@@ -80,11 +131,11 @@ export default function LoginScreen() {
         <Text style={styles.cardTitle}>Iniciar sesión</Text>
         <Text style={styles.cardSubtitle}>Ingresá tus credenciales para continuar</Text>
 
-        {/* Botón Rápido de Prueba (igual al web) */}
+        {/* Botón Rápido de Prueba (credenciales reales del seed) */}
         <TouchableOpacity style={styles.testUserBox} onPress={fillTestUser} activeOpacity={0.7}>
           <View>
-            <Text style={styles.testUserLabel}>Usuario de prueba:</Text>
-            <Text style={styles.testUserText}>admin / talleres123456</Text>
+            <Text style={styles.testUserLabel}>Usuario de prueba (Admin):</Text>
+            <Text style={styles.testUserText}>mfanara / talleres123456</Text>
           </View>
           <Ionicons name="arrow-forward-outline" size={16} color={COLORS.primary} />
         </TouchableOpacity>
@@ -102,9 +153,13 @@ export default function LoginScreen() {
           <Ionicons name="person-outline" size={20} color={COLORS.textDisabled} style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Usuario"
+            placeholder="Usuario o Correo"
+            placeholderTextColor={COLORS.textDisabled}
             value={form.usuario}
-            onChangeText={(text) => setForm({ ...form, usuario: text })}
+            onChangeText={(text) => {
+              setForm({ ...form, usuario: text });
+              if (captchaToken) setCaptchaToken('');
+            }}
             autoCapitalize="none"
           />
         </View>
@@ -114,8 +169,12 @@ export default function LoginScreen() {
           <TextInput
             style={styles.input}
             placeholder="Contraseña"
+            placeholderTextColor={COLORS.textDisabled}
             value={form.password}
-            onChangeText={(text) => setForm({ ...form, password: text })}
+            onChangeText={(text) => {
+              setForm({ ...form, password: text });
+              if (captchaToken) setCaptchaToken('');
+            }}
             secureTextEntry={!showPassword}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
@@ -123,8 +182,16 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Estado del Captcha */}
+        {captchaToken ? (
+          <View style={styles.captchaVerifiedBox}>
+            <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+            <Text style={styles.captchaVerifiedText}>Verificación de seguridad completada</Text>
+          </View>
+        ) : null}
+
         {/* Botón de Ingreso */}
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
+        <TouchableOpacity style={styles.loginButton} onPress={handleStartLogin} disabled={loading}>
           {loading ? (
             <ActivityIndicator color={COLORS.paper} />
           ) : (
@@ -132,6 +199,13 @@ export default function LoginScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Modal interactivo de reCAPTCHA */}
+      <RecaptchaModal
+        visible={captchaModalVisible}
+        onSuccess={handleCaptchaSuccess}
+        onClose={() => setCaptchaModalVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -154,6 +228,8 @@ const styles = StyleSheet.create({
   inputIcon: { marginRight: 10 },
   input: { flex: 1, height: '100%', color: COLORS.textPrimary, fontSize: 15 },
   eyeIcon: { padding: 4 },
+  captchaVerifiedBox: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, paddingHorizontal: 4 },
+  captchaVerifiedText: { fontSize: 12, color: COLORS.success, fontWeight: '600' },
   loginButton: { backgroundColor: COLORS.primary, height: 50, borderRadius: SPACING.smallRadius, justifyContent: 'center', alignItems: 'center', marginTop: 8 },
   loginButtonText: { color: COLORS.paper, fontSize: 16, fontWeight: 'bold' }
 });
